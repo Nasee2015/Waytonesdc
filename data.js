@@ -4,6 +4,231 @@
 
 const STORAGE_KEY = 'waytone_erp_central_db_v3';
 
+function getDefaultEmployees() {
+  return [
+    {
+      id: "WST-EMP-01",
+      name: "Nasim v",
+      place: "Kochi, Kerala",
+      address: "Kochi, Kerala",
+      mainRole: "CEO / Super Administrator",
+      designation: "CEO",
+      department: "Executive Leadership & Admin",
+      phone: "+91 98765 00001",
+      email: "nasim.v@waytone.edu",
+      permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
+      username: "Nasim",
+      password: "nasim@2026",
+      salary: 150000,
+      salaryFormatted: "₹1,50,000",
+      status: "Active",
+      manager: "Board of Directors",
+      avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+      joiningDate: "01 Jan 2024",
+      tenure: "2 yrs 8 mos",
+      room: "Executive Suite 1",
+      presentDays: 24,
+      totalWorkingDays: 24,
+      absentDays: 0,
+      leaveDays: 0,
+      attendanceRate: 100.0,
+      attendanceStats: {
+        totalDays: 24,
+        presentDays: 24,
+        absentDays: 0,
+        leaveDays: 0,
+        attendanceRate: 100.0
+      },
+      skills: ["Institutional Strategy", "Executive Leadership", "Financial Governance"],
+      performanceHistory: [
+        {
+          period: "August 2026",
+          score: 99,
+          rating: 5.0,
+          attendance: "100%",
+          remarks: "Exemplary institutional leadership. Achieved 120% quarterly target expansion across digital skill programs.",
+          strengths: "Vision, Strategic Execution, High Performance",
+          reviewer: "Board of Governors"
+        },
+        {
+          period: "July 2026",
+          score: 98,
+          rating: 4.9,
+          attendance: "100%",
+          remarks: "Successfully directed the enterprise-wide rollout of the unified WayBoss ERP system.",
+          strengths: "System Architecture, Team Empowerment",
+          reviewer: "Board of Governors"
+        }
+      ]
+    },
+    {
+      id: "WST-EMP-02",
+      name: "Dr. Ananya Varma",
+      place: "Calicut, Kerala",
+      address: "Calicut, Kerala",
+      mainRole: "Academic Coordinator",
+      designation: "Academic Coordinator",
+      department: "Faculty & Academics",
+      phone: "+91 98765 00002",
+      email: "coordinator@waytone.edu",
+      permissions: ["class-management", "academic-coordinator", "hrm", "crm", "catalogue"],
+      username: "coordinator",
+      password: "coord@2026",
+      salary: 65000,
+      salaryFormatted: "₹65,000",
+      status: "Active",
+      manager: "Nasim v (CEO)",
+      avatar: "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+      joiningDate: "15 Mar 2024",
+      tenure: "2 yrs 5 mos",
+      room: "Academics Wing A",
+      presentDays: 23,
+      totalWorkingDays: 24,
+      absentDays: 0,
+      leaveDays: 1,
+      attendanceRate: 95.8,
+      attendanceStats: {
+        totalDays: 24,
+        presentDays: 23,
+        absentDays: 0,
+        leaveDays: 1,
+        attendanceRate: 95.8
+      },
+      skills: ["Curriculum Planning", "Batch Allocation", "Mentor Governance", "Academic Operations"],
+      performanceHistory: [
+        {
+          period: "August 2026",
+          score: 96,
+          rating: 4.9,
+          attendance: "96%",
+          remarks: "Zero unscheduled batches. Flawless mentor workload allocation and 98% student attendance compliance.",
+          strengths: "Scheduling Efficiency, Mentor Coordination",
+          reviewer: "Nasim v (CEO)"
+        },
+        {
+          period: "July 2026",
+          score: 94,
+          rating: 4.8,
+          attendance: "95%",
+          remarks: "Structured seamless onboarding for 320 new admissions into active training cohorts.",
+          strengths: "Operational Rigor, Student Welfare",
+          reviewer: "Nasim v (CEO)"
+        }
+      ]
+    },
+    {
+      id: "WST-EMP-03",
+      name: "Mohammed Farhan",
+      place: "Kochi, Kerala",
+      address: "Kochi, Kerala",
+      mainRole: "Faculty Mentor",
+      designation: "Senior Faculty Mentor",
+      department: "Faculty & Academics",
+      phone: "+91 98765 00003",
+      email: "mentor@waytone.edu",
+      permissions: ["class-management", "mentor-dashboard", "catalogue"],
+      username: "mentor",
+      password: "mentor@2026",
+      salary: 55000,
+      salaryFormatted: "₹55,000",
+      status: "Active",
+      manager: "Dr. Ananya Varma",
+      avatar: "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+      joiningDate: "10 Jun 2024",
+      tenure: "2 yrs 3 mos",
+      room: "Language Lab 1",
+      presentDays: 22,
+      totalWorkingDays: 24,
+      absentDays: 1,
+      leaveDays: 1,
+      attendanceRate: 91.7,
+      attendanceStats: {
+        totalDays: 24,
+        presentDays: 22,
+        absentDays: 1,
+        leaveDays: 1,
+        attendanceRate: 91.7
+      },
+      skills: ["Communicative English", "Student Evaluation", "Public Speaking", "Curriculum Delivery"],
+      performanceHistory: [
+        {
+          period: "August 2026",
+          score: 94,
+          rating: 4.8,
+          attendance: "92%",
+          remarks: "Submitted 100% of student weekly reports on schedule. Outstanding 4.9/5 student rating.",
+          strengths: "Pedagogy, Student Engagement, Punctuality",
+          reviewer: "Dr. Ananya Varma"
+        },
+        {
+          period: "July 2026",
+          score: 92,
+          rating: 4.7,
+          attendance: "91%",
+          remarks: "Guided 4 batches through intensive speaking modules with 96% completion rate.",
+          strengths: "Interactive Teaching, Student Feedback",
+          reviewer: "Dr. Ananya Varma"
+        }
+      ]
+    },
+    {
+      id: "WST-EMP-04",
+      name: "Sarah Jenkins",
+      place: "Trivandrum, Kerala",
+      address: "Trivandrum, Kerala",
+      mainRole: "Admissions Counselor / Telecaller",
+      designation: "Senior Admissions Counselor",
+      department: "Admissions & CRM",
+      phone: "+91 98765 43210",
+      email: "counselor@waytone.edu",
+      permissions: ["crm", "telecaller", "catalogue"],
+      username: "counselor",
+      password: "counselor@2026",
+      salary: 42000,
+      salaryFormatted: "₹42,000",
+      status: "Active",
+      manager: "Nasim v (CEO)",
+      avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+      joiningDate: "01 Sep 2024",
+      tenure: "2 yrs",
+      room: "Telecaller Hub B",
+      presentDays: 23,
+      totalWorkingDays: 24,
+      absentDays: 0,
+      leaveDays: 1,
+      attendanceRate: 95.8,
+      attendanceStats: {
+        totalDays: 24,
+        presentDays: 23,
+        absentDays: 0,
+        leaveDays: 1,
+        attendanceRate: 95.8
+      },
+      skills: ["Lead Qualification", "Counseling", "Student Conversions", "Telecaller AI Training"],
+      performanceHistory: [
+        {
+          period: "August 2026",
+          score: 95,
+          rating: 4.8,
+          attendance: "96%",
+          remarks: "Closed 48 admissions in August, achieving 135% of quota with top conversion metrics.",
+          strengths: "Persuasive Communication, Follow-up Discipline",
+          reviewer: "Nasim v (CEO)"
+        },
+        {
+          period: "July 2026",
+          score: 91,
+          rating: 4.6,
+          attendance: "94%",
+          remarks: "Maintained 100+ daily call volume with positive applicant satisfaction remarks.",
+          strengths: "High Velocity, Detailed Notes",
+          reviewer: "Nasim v (CEO)"
+        }
+      ]
+    }
+  ];
+}
+
 function getInitialCleanSchema() {
   return {
     company: {
@@ -377,23 +602,23 @@ function getInitialCleanSchema() {
 
     hrm: {
       kpis: {
-        totalEmployees: 0,
-        activeEmployees: 0,
-        presentToday: 0,
+        totalEmployees: 4,
+        activeEmployees: 4,
+        presentToday: 4,
         absentToday: 0,
         onLeave: 0,
         onLeaveToday: 0,
-        newEmployees: 0,
-        pendingTasks: 0,
-        monthlyPayroll: 0,
-        monthlyPayrollFormatted: "₹0",
-        totalSalaryFormatted: "₹0",
-        avgPerformance: "--",
-        avgAttendancePct: "--",
-        openPositions: 0,
-        avgTenureMonths: 0
+        newEmployees: 1,
+        pendingTasks: 2,
+        monthlyPayroll: 312000,
+        monthlyPayrollFormatted: "₹3,12,000",
+        totalSalaryFormatted: "₹3,12,000",
+        avgPerformance: "96%",
+        avgAttendancePct: "95.8%",
+        openPositions: 2,
+        avgTenureMonths: 26
       },
-      employees: [],
+      employees: getDefaultEmployees(),
       payroll: {
         summary: {
           totalPayroll: 0,
@@ -727,6 +952,16 @@ function loadDatabase() {
         return target;
       }
       ERP_DATA = deepMerge(schema, parsed);
+      if (!ERP_DATA.hrm) ERP_DATA.hrm = {};
+      if (!ERP_DATA.hrm.employees || ERP_DATA.hrm.employees.length === 0) {
+        ERP_DATA.hrm.employees = getDefaultEmployees();
+      }
+      if (!ERP_DATA.hrm.kpis) ERP_DATA.hrm.kpis = {};
+      if (!ERP_DATA.hrm.kpis.totalEmployees || ERP_DATA.hrm.kpis.totalEmployees < ERP_DATA.hrm.employees.length) {
+        ERP_DATA.hrm.kpis.totalEmployees = ERP_DATA.hrm.employees.length;
+        ERP_DATA.hrm.kpis.activeEmployees = ERP_DATA.hrm.employees.length;
+        ERP_DATA.hrm.kpis.presentToday = ERP_DATA.hrm.employees.length;
+      }
       console.log('✓ Central ERP Database loaded from persistence store.');
     } else {
       ERP_DATA = getInitialCleanSchema();

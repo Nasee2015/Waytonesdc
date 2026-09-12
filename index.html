@@ -81,6 +81,8 @@
               <option value="Admissions Counselor / Telecaller">Admissions Counselor / Telecaller</option>
               <option value="Marketing Head">Marketing Head</option>
               <option value="Finance Executive">Finance Executive</option>
+              <option value="HR Manager">HR Manager</option>
+              <option value="Operations Officer">Operations Officer</option>
             </select>
           </div>
         </div>
@@ -2750,7 +2752,7 @@
             <div class="glass-card" style="padding:14px 18px; margin-bottom:16px;">
               <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                 <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap; flex:1;">
-                  <input type="text" id="hrm-emp-search" placeholder="Search employee name, phone, designation..." oninput="renderHrmEmployees()" style="padding:7px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; background:#ffffff; color:#0f1419; width:260px;">
+                  <input type="text" id="hrm-emp-search" placeholder="Search name, place, role, phone..." oninput="renderHrmEmployees()" style="padding:7px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; background:#ffffff; color:#0f1419; width:260px;">
                   <select id="hrm-emp-status-filter" onchange="renderHrmEmployees()" style="padding:7px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; background:#ffffff; color:#0f1419;">
                     <option value="all">All Employment Status</option>
                     <option value="Active">Active</option>
@@ -2758,7 +2760,7 @@
                   </select>
                 </div>
                 <button class="btn-primary-ai" style="padding:7px 14px; font-size:12px;" onclick="openAddEmployeeModal()">
-                  + Onboard New Employee
+                  + Add Employee
                 </button>
               </div>
               <!-- Department Filter Chips -->
@@ -6852,69 +6854,192 @@
   <!-- 9. Modal: Add New Employee                                -->
   <!-- ======================================================== -->
   <div class="modal-overlay" id="modal-hrm-add-employee">
-    <div class="modal-content" style="max-width: 620px; width: 95vw;">
-      <div class="modal-header">
+    <div class="modal-content" style="max-width: 660px; width: 95vw; max-height: 90vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #f9faf7 0%, #edf5e8 100%); border-bottom: 1.5px solid #dbe2d6; padding: 16px 20px;">
         <div>
-          <h3 style="margin:0; font-size:18px; color:#0f1419;">+ Onboard New Staff Member</h3>
-          <p style="font-size:12px; color:#4b5563; margin:2px 0 0 0;">Add faculty, admissions counselor, tech or administrative personnel</p>
+          <span class="badge-pista" style="font-size: 10.5px; font-weight: 700; margin-bottom: 4px; display: inline-block;">HRM STAFF ONBOARDING</span>
+          <h3 style="margin:0; font-size:18px; color:#0f1419; font-weight:700;">+ Add Employee</h3>
+          <p style="font-size:12px; color:#4b5563; margin:2px 0 0 0;">Enter staff details, configure system module permissions, and auto-generate login credentials</p>
         </div>
         <button class="modal-close-btn" onclick="closeModal('modal-hrm-add-employee')">✕</button>
       </div>
-      <div class="modal-body" style="padding:18px 20px;">
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;">
         <form id="hrm-add-employee-form" onsubmit="event.preventDefault(); saveNewEmployee();">
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Full Name *</label>
-              <input type="text" id="add-emp-name" required placeholder="e.g. Ramesh Menon" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+          
+          <!-- Primary Profile Fields -->
+          <div style="background:#ffffff; border:1px solid #e5e7eb; border-radius:8px; padding:16px; margin-bottom:16px;">
+            <div style="font-size:12.5px; font-weight:700; color:#1f2937; margin-bottom:12px; display:flex; align-items:center; gap:6px;">
+              <span>👤 Employee Profile Information</span>
             </div>
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Phone Number *</label>
-              <input type="text" id="add-emp-phone" required placeholder="+91 98450 12345" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+
+            <!-- Name and Place -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px; margin-bottom:14px;">
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
+                  Name <span style="color:#dc2626;">*</span>
+                </label>
+                <input type="text" id="add-emp-name" required placeholder="e.g. Rahul Sharma" oninput="previewGeneratedUsername()" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
+                  Place <span style="color:#dc2626;">*</span>
+                </label>
+                <input type="text" id="add-emp-place" required list="kerala-places-list" placeholder="e.g. Kochi, Kerala" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <datalist id="kerala-places-list">
+                  <option value="Kochi, Kerala">
+                  <option value="Calicut, Kerala">
+                  <option value="Trivandrum, Kerala">
+                  <option value="Malappuram, Kerala">
+                  <option value="Thrissur, Kerala">
+                  <option value="Kannur, Kerala">
+                  <option value="Kollam, Kerala">
+                  <option value="Bangalore, Karnataka">
+                  <option value="Dubai, UAE">
+                </datalist>
+              </div>
+            </div>
+
+            <!-- Main Role and Phone Number -->
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
+                  Main Role <span style="color:#dc2626;">*</span>
+                </label>
+                <select id="add-emp-role" required onchange="handleRolePresetPermissions(this.value)" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; background:#ffffff; box-sizing:border-box;">
+                  <option value="" disabled selected>-- Select Main Role --</option>
+                  <option value="CEO / Super Administrator">CEO / Super Administrator</option>
+                  <option value="Academic Coordinator">Academic Coordinator</option>
+                  <option value="Faculty Mentor">Faculty Mentor</option>
+                  <option value="Admissions Counselor / Telecaller">Admissions Counselor / Telecaller</option>
+                  <option value="HR Manager">HR Manager</option>
+                  <option value="Finance Executive">Finance Executive</option>
+                  <option value="Marketing Executive">Marketing Executive</option>
+                  <option value="Operations Officer">Operations Officer</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
+                  Phone Number <span style="color:#dc2626;">*</span>
+                </label>
+                <input type="tel" id="add-emp-phone" required placeholder="+91 98450 12345" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Email Address *</label>
-              <input type="email" id="add-emp-email" required placeholder="name@waytone.edu" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+          <!-- Permissions Section: Which modules provide access to Employee -->
+          <div style="background:#f9faf7; border:1.5px solid #dbe2d6; border-radius:8px; padding:16px; margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; flex-wrap:wrap; gap:8px;">
+              <div>
+                <label style="font-size:12.5px; font-weight:700; color:#1f2937; display:block;">
+                  🛡️ Permissions — Module Access Control <span style="color:#dc2626;">*</span>
+                </label>
+                <span style="font-size:11.5px; color:#4b5563;">Select which modules provide access to this Employee:</span>
+              </div>
+              <div style="display:flex; gap:6px;">
+                <button type="button" class="btn-secondary" onclick="toggleAllEmployeePermissions(true)" style="padding:4px 10px; font-size:11px;">Select All</button>
+                <button type="button" class="btn-secondary" onclick="toggleAllEmployeePermissions(false)" style="padding:4px 10px; font-size:11px;">Clear All</button>
+              </div>
             </div>
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Department *</label>
-              <select id="add-emp-dept" required style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; background:#ffffff; box-sizing:border-box;">
-                <option value="Faculty & Academics">Faculty & Academics</option>
-                <option value="Admissions & CRM">Admissions & CRM</option>
-                <option value="Operations & Tech">Operations & Tech</option>
-                <option value="Finance & Accounts">Finance & Accounts</option>
-                <option value="Executive Leadership & Admin">Executive & Admin</option>
-              </select>
+
+            <!-- Grid of Module Permissions -->
+            <div style="display:grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap:10px;" id="add-emp-permissions-grid">
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="crm" style="accent-color:#46652e;">
+                <span>📊 CRM & Admissions</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="finance" style="accent-color:#46652e;">
+                <span>💰 Finance & Accounts</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="class-management" style="accent-color:#46652e;">
+                <span>🎓 Class Management</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="hrm" style="accent-color:#46652e;">
+                <span>👥 HRM & Faculty</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="catalogue" style="accent-color:#46652e;">
+                <span>📚 Course Catalogue</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="wayboss-ai" style="accent-color:#46652e;">
+                <span>🤖 WayBoss AI</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="telecaller" style="accent-color:#46652e;">
+                <span>📞 Telecaller</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="marketing" style="accent-color:#46652e;">
+                <span>📢 Marketing</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="academic-coordinator" style="accent-color:#46652e;">
+                <span>🏛️ Academic Coordinator</span>
+              </label>
+              <label style="display:flex; align-items:center; gap:8px; padding:8px 10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; cursor:pointer; font-size:12px; font-weight:500;">
+                <input type="checkbox" name="emp_perm" value="mentor-dashboard" style="accent-color:#46652e;">
+                <span>👨‍🏫 Mentor Dashboard</span>
+              </label>
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Designation *</label>
-              <input type="text" id="add-emp-role" required placeholder="e.g. Communicative English Mentor" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+          <!-- Credentials Auto-Generation Notice -->
+          <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:8px; padding:14px; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
+              <span style="font-size:16px;">🔑</span>
+              <strong style="font-size:12.5px; color:#1e40af;">Auto-Generated System Credentials</strong>
+              <span class="badge-pista" style="background:#dbeafe; color:#1e40af; border-color:#93c5fd; font-size:10px;">Generated On Submit</span>
             </div>
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Monthly Basic Salary (₹) *</label>
-              <input type="number" id="add-emp-salary" required placeholder="42000" min="15000" step="1000" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+            <p style="font-size:11.5px; color:#3b82f6; margin:0 0 8px 0;">
+              Submitting creates the employee, auto-generates their <strong>Employee ID</strong>, <strong>Username</strong>, and <strong>Password</strong>, and immediately displays them in the Employee Profile.
+            </p>
+            <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:10px; font-size:11.5px; background:#ffffff; padding:10px; border-radius:6px; border:1px solid #dbeafe;">
+              <div>
+                <span style="color:#6b7280; display:block;">Employee ID:</span>
+                <strong id="preview-emp-id" style="color:#0f1419; font-family:var(--font-mono); font-size:12px;">WST-EMP-05</strong>
+              </div>
+              <div>
+                <span style="color:#6b7280; display:block;">Username:</span>
+                <strong id="preview-emp-username" style="color:#0f1419; font-family:var(--font-mono); font-size:12px;">auto-from-name</strong>
+              </div>
+              <div>
+                <span style="color:#6b7280; display:block;">Password:</span>
+                <strong style="color:#059669; font-family:var(--font-mono); font-size:12px;">Waytone@****</strong>
+              </div>
             </div>
           </div>
 
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:16px;">
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Assigned Reporting Manager</label>
-              <input type="text" id="add-emp-manager" value="Nasim v (CEO)" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+          <!-- Optional Secondary Details Collapsible (Email, Salary, Manager) -->
+          <details style="margin-bottom:16px; font-size:12px; color:#4b5563; border:1px dashed #dbe2d6; border-radius:6px; padding:8px 12px; background:#fafbf8;">
+            <summary style="cursor:pointer; font-weight:600; color:#3d5a27;">+ Optional Details (Custom Email, Basic Salary, Manager, Station)</summary>
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-top:10px;">
+              <div>
+                <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Custom Email (Optional)</label>
+                <input type="email" id="add-emp-email" placeholder="Leave blank for auto @waytone.edu" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Monthly Basic Salary (₹)</label>
+                <input type="number" id="add-emp-salary" value="45000" min="15000" step="1000" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Reporting Manager</label>
+                <input type="text" id="add-emp-manager" value="Nasim v (CEO)" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
+              <div>
+                <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Allocated Room / Station</label>
+                <input type="text" id="add-emp-room" placeholder="Language Lab / Station 3" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+              </div>
             </div>
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Allocated Room / Station</label>
-              <input type="text" id="add-emp-room" placeholder="Language Lab 1 / Desk 4" style="width:100%; padding:8px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
-            </div>
-          </div>
+          </details>
 
-          <div class="modal-footer" style="padding:12px 0 0 0; justify-content:flex-end;">
+          <div class="modal-footer" style="padding:14px 0 0 0; justify-content:flex-end; border-top:1px solid #e5e7eb;">
             <button type="button" class="btn-secondary" onclick="closeModal('modal-hrm-add-employee')">Cancel</button>
-            <button type="submit" class="btn-primary-ai">+ Save & Onboard Employee</button>
+            <button type="submit" class="btn-primary-ai" style="padding:9px 18px; font-size:13px; font-weight:700;">
+              ✓ Save Employee & Generate Credentials
+            </button>
           </div>
         </form>
       </div>
@@ -6986,26 +7111,33 @@
   <!-- 11. Modal: Employee Profile Drawer                         -->
   <!-- ======================================================== -->
   <div class="modal-overlay" id="modal-hrm-employee-profile">
-    <div class="modal-content" style="max-width: 760px; width: 95vw;">
-      <div class="modal-header" style="background:#f9faf7;">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <img id="hrm-profile-avatar" src="" style="width:52px; height:52px; border-radius:50%; object-fit:cover; border:2px solid #6b8e4e;">
+    <div class="modal-content" style="max-width: 840px; width: 95vw; max-height: 92vh; display: flex; flex-direction: column;">
+      <div class="modal-header" style="background: linear-gradient(135deg, #f9faf7 0%, #edf5e8 100%); border-bottom: 1.5px solid #dbe2d6; padding: 16px 22px;">
+        <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+          <img id="hrm-profile-avatar" src="" style="width:56px; height:56px; border-radius:50%; object-fit:cover; border:2.5px solid #6b8e4e; box-shadow:0 2px 8px rgba(0,0,0,0.08);">
           <div>
-            <div style="display:flex; align-items:center; gap:8px;">
-              <h3 id="hrm-profile-name" style="margin:0; font-size:18px; color:#0f1419;">Employee Name</h3>
-              <span class="badge-pista" id="hrm-profile-status">Active</span>
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <h3 id="hrm-profile-name" style="margin:0; font-size:19px; color:#0f1419; font-weight:700;">Employee Name</h3>
+              <span class="badge-pista" id="hrm-profile-id-badge" style="font-family:var(--font-mono); font-size:11px; font-weight:700;">WST-EMP-01</span>
+              <span class="hrm-badge-present" id="hrm-profile-status" style="font-size:11px;">Active</span>
             </div>
-            <div id="hrm-profile-title" style="font-size:12.5px; font-weight:600; color:#3d5a27; margin-top:2px;">Designation</div>
+            <div style="display:flex; align-items:center; gap:8px; margin-top:3px; flex-wrap:wrap;">
+              <span id="hrm-profile-title" style="font-size:12.5px; font-weight:600; color:#3d5a27;">Designation • Department</span>
+              <span style="color:#9ca3af;">•</span>
+              <span id="hrm-profile-place" style="font-size:12px; color:#4b5563; display:inline-flex; align-items:center; gap:3px;">📍 Kochi, Kerala</span>
+            </div>
           </div>
         </div>
         <button class="modal-close-btn" onclick="closeModal('modal-hrm-employee-profile')">✕</button>
       </div>
-      <div class="modal-body" style="padding:18px 20px;" id="hrm-profile-body-content">
+      <div class="modal-body" style="padding: 20px; overflow-y: auto; flex: 1;" id="hrm-profile-body-content">
         <!-- Rendered dynamically by app.js -->
       </div>
-      <div class="modal-footer" style="justify-content:space-between;">
-        <span style="font-size:12px; color:#6b7280;">Waytone Skill Development Centre • Human Resources</span>
-        <button class="btn-secondary" onclick="closeModal('modal-hrm-employee-profile')">Close</button>
+      <div class="modal-footer" style="justify-content:space-between; border-top:1px solid #e5e7eb; padding:12px 20px;">
+        <span style="font-size:11.5px; color:#6b7280;">Waytone Skill Development Centre • Human Resource Information System</span>
+        <div style="display:flex; gap:8px;">
+          <button class="btn-secondary" onclick="closeModal('modal-hrm-employee-profile')">Close</button>
+        </div>
       </div>
     </div>
   </div>

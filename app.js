@@ -1,4 +1,4 @@
-﻿// Waytone Skill Development Centre - Main Application Controller
+// Waytone Skill Development Centre - Main Application Controller
 // Orchestrates CEO Dashboard for Nasim v, Pista Green & Grey Theme, Rupee Currency, and WayBoss AI
 
 let currentView = 'ceo-dashboard';
@@ -114,6 +114,26 @@ function initApp() {
       switchView('telecaller');
       switchTelecallerTab('crm');
       grabTelecallerLead(urlParams.get('tcGrab'));
+    }
+    if (urlParams.has('hrmTab')) {
+      switchView('hrm');
+      switchHrmTab(urlParams.get('hrmTab'));
+    }
+    if (urlParams.has('openProfile')) {
+      switchView('hrm');
+      switchHrmTab('employees');
+      openEmployeeProfile(urlParams.get('openProfile'));
+      if (urlParams.get('profileScroll') === 'bottom') {
+        setTimeout(() => {
+          const m = document.getElementById('hrm-profile-body-content');
+          if (m) m.scrollTop = m.scrollHeight;
+        }, 300);
+      }
+    }
+    if (urlParams.has('openAddEmp')) {
+      switchView('hrm');
+      switchHrmTab('employees');
+      openAddEmployeeModal();
     }
   } catch (e) {
     console.warn('URL params parsing bypassed:', e);
@@ -5464,8 +5484,115 @@ function submitQuickPunch(type) {
 }
 
 // ----------------------------------------------------------
-// 7.2 Employee Management Pane
+// 7.2 Employee Management Pane & Profile Engine
 // ----------------------------------------------------------
+const ERP_MODULE_LABELS = {
+  'crm': '📊 CRM & Admissions',
+  'finance': '💰 Finance & Accounts',
+  'class-management': '🎓 Class Management',
+  'hrm': '👥 HRM & Faculty',
+  'catalogue': '📚 Course Catalogue',
+  'wayboss-ai': '🤖 WayBoss AI',
+  'telecaller': '📞 Telecaller',
+  'marketing': '📢 Marketing',
+  'academic-coordinator': '🏛️ Academic Coordinator',
+  'mentor-dashboard': '👨‍🏫 Mentor Dashboard'
+};
+
+function mapRoleToDepartment(role) {
+  const r = (role || '').toLowerCase();
+  if (r.includes('mentor') || r.includes('faculty') || r.includes('coordinator') || r.includes('trainer')) {
+    return 'Faculty & Academics';
+  } else if (r.includes('counselor') || r.includes('telecaller') || r.includes('admission')) {
+    return 'Admissions & CRM';
+  } else if (r.includes('finance') || r.includes('account')) {
+    return 'Finance & Accounts';
+  } else if (r.includes('marketing') || r.includes('campaign')) {
+    return 'Marketing & Growth';
+  } else if (r.includes('ceo') || r.includes('admin') || r.includes('director')) {
+    return 'Executive Leadership & Admin';
+  }
+  return 'Operations & Tech';
+}
+
+function mapRoleToRoleId(role) {
+  const r = (role || '').toLowerCase();
+  if (r.includes('ceo') || r.includes('admin')) return 'ROLE-ADMIN';
+  if (r.includes('coordinator')) return 'ROLE-COORD';
+  if (r.includes('mentor') || r.includes('trainer')) return 'ROLE-MENTOR';
+  if (r.includes('counselor') || r.includes('telecaller')) return 'ROLE-TC';
+  if (r.includes('finance')) return 'ROLE-FINANCE';
+  if (r.includes('marketing')) return 'ROLE-MARKETING';
+  return 'ROLE-STAFF';
+}
+
+function handleRolePresetPermissions(role) {
+  const r = (role || '').toLowerCase();
+  const checkboxes = document.querySelectorAll('#add-emp-permissions-grid input[name="emp_perm"]');
+  checkboxes.forEach(cb => cb.checked = false);
+
+  if (r.includes('ceo') || r.includes('admin')) {
+    checkboxes.forEach(cb => cb.checked = true);
+  } else if (r.includes('coordinator')) {
+    ['class-management', 'academic-coordinator', 'hrm', 'crm', 'catalogue'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else if (r.includes('mentor') || r.includes('trainer')) {
+    ['class-management', 'mentor-dashboard', 'catalogue'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else if (r.includes('counselor') || r.includes('telecaller')) {
+    ['crm', 'telecaller', 'catalogue'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else if (r.includes('hr')) {
+    ['hrm', 'academic-coordinator', 'class-management'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else if (r.includes('finance')) {
+    ['finance', 'catalogue'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else if (r.includes('marketing')) {
+    ['marketing', 'crm'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  } else {
+    ['hrm', 'catalogue'].forEach(val => {
+      const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+      if (cb) cb.checked = true;
+    });
+  }
+}
+
+function toggleAllEmployeePermissions(checked) {
+  const checkboxes = document.querySelectorAll('#add-emp-permissions-grid input[name="emp_perm"]');
+  checkboxes.forEach(cb => cb.checked = checked);
+}
+
+function generateCleanUsername(name) {
+  if (!name) return 'emp_' + Math.floor(100 + Math.random() * 900);
+  const clean = name.toLowerCase().replace(/[^a-z0-9\s]/g, '').trim().split(/\s+/);
+  if (clean.length === 1) {
+    return clean[0];
+  }
+  return `${clean[0]}.${clean[clean.length - 1]}`;
+}
+
+function previewGeneratedUsername() {
+  const name = document.getElementById('add-emp-name')?.value.trim();
+  const preview = document.getElementById('preview-emp-username');
+  if (preview) {
+    preview.textContent = name ? generateCleanUsername(name) : 'auto-from-name';
+  }
+}
+
 function renderHrmEmployees() {
   const tbody = document.getElementById('hrm-employees-tbody');
   if (!tbody) return;
@@ -5488,15 +5615,21 @@ function renderHrmEmployees() {
   // Filter by query
   if (query) {
     list = list.filter(e =>
-      e.name.toLowerCase().includes(query) ||
-      e.phone.toLowerCase().includes(query) ||
-      e.designation.toLowerCase().includes(query) ||
-      e.id.toLowerCase().includes(query)
+      (e.name || '').toLowerCase().includes(query) ||
+      (e.phone || '').toLowerCase().includes(query) ||
+      (e.designation || '').toLowerCase().includes(query) ||
+      (e.mainRole || '').toLowerCase().includes(query) ||
+      (e.place || e.address || '').toLowerCase().includes(query) ||
+      (e.id || '').toLowerCase().includes(query) ||
+      (e.username || '').toLowerCase().includes(query)
     );
   }
 
   if (list.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:24px; color:#6b7280;">No employees found matching your criteria.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center; padding:32px; color:#6b7280;">
+      <div style="font-size:14px; font-weight:600; color:#374151; margin-bottom:4px;">No employees found</div>
+      <div style="font-size:12px;">No matching staff records found for your search criteria.</div>
+    </td></tr>`;
     return;
   }
 
@@ -5507,36 +5640,46 @@ function renderHrmEmployees() {
       ? `<span class="hrm-badge-leave">● On Leave</span>`
       : `<span class="hrm-badge-half">● Probation</span>`;
 
+    const placeDisplay = e.place || e.address || 'Kochi, Kerala';
+    const roleDisplay = e.mainRole || e.designation;
+
     return `
-      <tr style="border-bottom:1px solid #e5e7eb;">
-        <td style="padding:10px 14px;">
+      <tr style="border-bottom:1px solid #e5e7eb; transition: background 0.15s ease;" onmouseover="this.style.background='#fdfefc'" onmouseout="this.style.background='transparent'">
+        <td style="padding:11px 14px;">
           <div style="display:flex; align-items:center; gap:10px;">
-            <img src="${e.avatar}" style="width:34px; height:34px; border-radius:50%; object-fit:cover; border:1.5px solid #6b8e4e;">
+            <img src="${e.avatar}" style="width:36px; height:36px; border-radius:50%; object-fit:cover; border:1.5px solid #6b8e4e; flex-shrink:0;">
             <div>
-              <strong style="font-size:13px; color:#0f1419; display:block;">${e.name}</strong>
-              <span style="font-size:11px; color:#6b7280; font-family:var(--font-mono);">${e.id}</span>
+              <strong style="font-size:13px; color:#0f1419; display:block;">${escapeHTML(e.name)}</strong>
+              <div style="display:flex; align-items:center; gap:6px; margin-top:2px;">
+                <span style="font-size:11px; color:#6b7280; font-family:var(--font-mono);">${e.id}</span>
+                <span style="color:#9ca3af; font-size:10px;">•</span>
+                <span style="font-size:11px; color:#3d5a27; font-weight:600;">📍 ${escapeHTML(placeDisplay)}</span>
+              </div>
             </div>
           </div>
         </td>
-        <td style="padding:10px 14px; font-size:12px; color:#4b5563;">
-          <div>📞 ${e.phone}</div>
-          <div style="font-size:11px; color:#6b7280;">✉️ ${e.email}</div>
+        <td style="padding:11px 14px; font-size:12px; color:#4b5563;">
+          <div style="font-weight:600; color:#0f1419;">📞 ${escapeHTML(e.phone)}</div>
+          <div style="font-size:11px; color:#6b7280; margin-top:1px;">✉️ ${escapeHTML(e.email || (e.username ? e.username + '@waytone.edu' : '—'))}</div>
         </td>
-        <td style="padding:10px 14px; font-size:12px; color:#0f1419;">
-          <span class="badge-pista" style="font-size:11px;">${e.department}</span>
+        <td style="padding:11px 14px; font-size:12px; color:#0f1419;">
+          <span class="badge-pista" style="font-size:11px;">${escapeHTML(e.department)}</span>
         </td>
-        <td style="padding:10px 14px; font-size:12px; font-weight:600; color:#0f1419;">${e.designation}</td>
-        <td style="padding:10px 14px; font-size:12px; color:#4b5563;">
+        <td style="padding:11px 14px; font-size:12px; font-weight:600; color:#0f1419;">
+          <div>${escapeHTML(roleDisplay)}</div>
+          ${e.username ? `<span style="font-size:10.5px; color:#6b7280; font-family:var(--font-mono);">@${escapeHTML(e.username)}</span>` : ''}
+        </td>
+        <td style="padding:11px 14px; font-size:12px; color:#4b5563;">
           <div>${e.joiningDate}</div>
           <span style="font-size:10.5px; color:#3d5a27; font-weight:600;">(${e.tenure})</span>
         </td>
-        <td style="padding:10px 14px; font-size:12.5px; font-weight:700; color:#0f1419; font-family:var(--font-mono);">
+        <td style="padding:11px 14px; font-size:12.5px; font-weight:700; color:#0f1419; font-family:var(--font-mono);">
           ${e.salaryFormatted}
         </td>
-        <td style="padding:10px 14px;">${statusBadge}</td>
-        <td style="padding:10px 14px; font-size:12px; color:#4b5563;">${e.manager}</td>
-        <td style="padding:10px 14px; text-align:center;">
-          <button class="btn-secondary" style="padding:4px 10px; font-size:11.5px;" onclick="openEmployeeProfile('${e.id}')">
+        <td style="padding:11px 14px;">${statusBadge}</td>
+        <td style="padding:11px 14px; font-size:12px; color:#4b5563;">${escapeHTML(e.manager)}</td>
+        <td style="padding:11px 14px; text-align:center;">
+          <button class="btn-primary-ai" style="padding:5px 12px; font-size:11.5px; font-weight:600;" onclick="openEmployeeProfile('${e.id}')">
             View Profile
           </button>
         </td>
@@ -5564,157 +5707,174 @@ function filterEmployeesByDept(dept) {
   renderHrmEmployees();
 }
 
-function openEmployeeProfile(empId) {
-  const emp = ERP_DATA.hrm.employees.find(e => e.id === empId);
-  if (!emp) return;
-
-  const avatar = document.getElementById('hrm-profile-avatar');
-  const name = document.getElementById('hrm-profile-name');
-  const title = document.getElementById('hrm-profile-title');
-  const statusBadge = document.getElementById('hrm-profile-status');
-  const body = document.getElementById('hrm-profile-body-content');
-
-  if (avatar) avatar.src = emp.avatar;
-  if (name) name.textContent = emp.name;
-  if (title) title.textContent = `${emp.designation} • ${emp.department}`;
-  if (statusBadge) statusBadge.textContent = emp.status;
-
-  // Pull performance & attendance stats
-  const perf = ERP_DATA.hrm.performance.find(p => p.empId === empId);
-  const att = ERP_DATA.hrm.attendance.find(a => a.empId === empId);
-  const payroll = ERP_DATA.hrm.payroll.records.find(r => r.empId === empId);
-
-  if (body) {
-    body.innerHTML = `
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:16px;">
-        <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:12px 14px;">
-          <h4 style="margin:0 0 8px 0; font-size:12.5px; color:#0f1419; text-transform:uppercase;">Contact & Location</h4>
-          <div style="font-size:12px; color:#4b5563; line-height:1.6;">
-            <div><strong>Employee ID:</strong> ${emp.id}</div>
-            <div><strong>Phone:</strong> ${emp.phone}</div>
-            <div><strong>Email:</strong> ${emp.email}</div>
-            <div><strong>Station / Lab:</strong> ${emp.room || 'Main Campus'}</div>
-            <div><strong>City:</strong> ${emp.address}</div>
-          </div>
-        </div>
-
-        <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:12px 14px;">
-          <h4 style="margin:0 0 8px 0; font-size:12.5px; color:#0f1419; text-transform:uppercase;">Employment & Hierarchy</h4>
-          <div style="font-size:12px; color:#4b5563; line-height:1.6;">
-            <div><strong>Joining Date:</strong> ${emp.joiningDate}</div>
-            <div><strong>Tenure:</strong> ${emp.tenure}</div>
-            <div><strong>Reporting Manager:</strong> ${emp.manager}</div>
-            <div><strong>Basic Salary:</strong> ${emp.salaryFormatted} / month</div>
-            <div><strong>Attendance (30-day):</strong> <span style="color:#2b5115; font-weight:700;">${att ? att.attendanceRate : 96.0}%</span></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Performance & Cross-Module Metrics -->
-      <div style="background:#ffffff; border:1px solid #dbe2d6; border-radius:8px; padding:14px; margin-bottom:14px;">
-        <h4 style="margin:0 0 10px 0; font-size:13px; color:#0f1419; display:flex; align-items:center; gap:6px;">
-          <span>⚡ Live ERP Performance Attribution</span>
-          <span class="badge-pista" style="font-size:10px;">CRM & Class Synced</span>
-        </h4>
-        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap:10px;">
-          <div style="background:#f9faf7; padding:8px 12px; border-radius:6px; border:1px solid #e5e7eb;">
-            <div style="font-size:11px; color:#6b7280;">KPI Score</div>
-            <div style="font-size:18px; font-weight:700; color:#0f1419; margin-top:2px;">${perf ? perf.kpiScore : 94.0} / 100</div>
-          </div>
-          <div style="background:#f9faf7; padding:8px 12px; border-radius:6px; border:1px solid #e5e7eb;">
-            <div style="font-size:11px; color:#6b7280;">Admissions Closed</div>
-            <div style="font-size:18px; font-weight:700; color:var(--accent-pista-bright); margin-top:2px;">${perf ? perf.admissionsClosed : 0} Students</div>
-          </div>
-          <div style="background:#f9faf7; padding:8px 12px; border-radius:6px; border:1px solid #e5e7eb;">
-            <div style="font-size:11px; color:#6b7280;">Revenue Generated</div>
-            <div style="font-size:18px; font-weight:700; color:#3d5a27; margin-top:2px;">${perf ? perf.revenueFormatted : '₹0'}</div>
-          </div>
-          <div style="background:#f9faf7; padding:8px 12px; border-radius:6px; border:1px solid #e5e7eb;">
-            <div style="font-size:11px; color:#6b7280;">Performance Incentive</div>
-            <div style="font-size:18px; font-weight:700; color:#d97706; margin-top:2px;">₹${(payroll ? payroll.incentives : 0).toLocaleString('en-IN')}</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Skills Chips -->
-      <div>
-        <div style="font-size:12px; font-weight:600; color:#0f1419; margin-bottom:6px;">Competencies & Skill Areas:</div>
-        <div style="display:flex; gap:6px; flex-wrap:wrap;">
-          ${(emp.skills || ['Communication', 'Operations', 'Leadership']).map(s => `
-            <span class="badge-pista" style="font-size:11px; font-weight:600;">${s}</span>
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }
-
-  openModal('modal-hrm-employee-profile');
-}
-
 function openAddEmployeeModal() {
   const form = document.getElementById('hrm-add-employee-form');
   if (form) form.reset();
+
+  const count = (ERP_DATA.hrm.employees || []).length;
+  const nextId = `WST-EMP-${String(count + 1).padStart(2, '0')}`;
+
+  const previewId = document.getElementById('preview-emp-id');
+  if (previewId) previewId.textContent = nextId;
+
+  const previewUser = document.getElementById('preview-emp-username');
+  if (previewUser) previewUser.textContent = 'auto-from-name';
+
+  toggleAllEmployeePermissions(false);
+  // Default checked modules
+  ['class-management', 'hrm'].forEach(val => {
+    const cb = document.querySelector(`#add-emp-permissions-grid input[value="${val}"]`);
+    if (cb) cb.checked = true;
+  });
+
   openModal('modal-hrm-add-employee');
 }
 
 function saveNewEmployee() {
   const name = document.getElementById('add-emp-name')?.value.trim();
+  const place = document.getElementById('add-emp-place')?.value.trim();
+  const mainRole = document.getElementById('add-emp-role')?.value.trim();
   const phone = document.getElementById('add-emp-phone')?.value.trim();
-  const email = document.getElementById('add-emp-email')?.value.trim();
-  const dept = document.getElementById('add-emp-dept')?.value;
-  const role = document.getElementById('add-emp-role')?.value.trim();
-  const salary = parseInt(document.getElementById('add-emp-salary')?.value || '35000', 10);
-  const manager = document.getElementById('add-emp-manager')?.value.trim() || 'Nasim v (CEO)';
-  const room = document.getElementById('add-emp-room')?.value.trim() || 'Main Campus';
 
-  if (!name || !phone || !email || !role) {
-    alert('Please fill out all required fields.');
+  // Read Permissions
+  const checkedPermissions = [];
+  document.querySelectorAll('#add-emp-permissions-grid input[name="emp_perm"]:checked').forEach(cb => {
+    checkedPermissions.push(cb.value);
+  });
+
+  if (!name || !place || !mainRole || !phone) {
+    alert('Please fill out all required fields (Name, Place, Main Role, and Phone Number).');
     return;
+  }
+
+  if (checkedPermissions.length === 0) {
+    if (!confirm('No module permissions selected. Do you want to continue with basic workspace access?')) {
+      return;
+    }
   }
 
   const count = (ERP_DATA.hrm.employees || []).length;
   const newId = `WST-EMP-${String(count + 1).padStart(2, '0')}`;
 
+  // Generate unique username
+  let baseUsername = generateCleanUsername(name);
+  let finalUsername = baseUsername;
+  let counter = 1;
+  while ((ERP_DATA.hrm.employees || []).some(e => (e.username || '').toLowerCase() === finalUsername.toLowerCase())) {
+    finalUsername = `${baseUsername}${counter}`;
+    counter++;
+  }
+
+  // Generate secure password
+  const randomNum = Math.floor(1000 + Math.random() * 9000);
+  const password = `Waytone@${randomNum}`;
+
+  // Custom or auto email
+  const customEmail = document.getElementById('add-emp-email')?.value.trim();
+  const email = customEmail || `${finalUsername}@waytone.edu`;
+
+  // Salary & Manager
+  const salary = parseInt(document.getElementById('add-emp-salary')?.value || '45000', 10);
+  const manager = document.getElementById('add-emp-manager')?.value.trim() || 'Nasim v (CEO)';
+  const room = document.getElementById('add-emp-room')?.value.trim() || 'Station 1';
+  const dept = mapRoleToDepartment(mainRole);
+
   const newEmp = {
     id: newId,
     name: name,
+    place: place,
+    address: place,
+    mainRole: mainRole,
+    designation: mainRole,
+    department: dept,
     phone: phone,
     email: email,
-    department: dept,
-    designation: role,
-    joiningDate: '05 Sep 2026',
-    tenure: 'New Joiner',
+    permissions: checkedPermissions,
+    username: finalUsername,
+    password: password,
     salary: salary,
     salaryFormatted: `₹${salary.toLocaleString('en-IN')}`,
     status: 'Active',
     manager: manager,
-    avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
+    avatar: `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=46652e&color=fff&bold=true`,
     room: room,
-    skills: ['Onboarding', 'Core Subject', 'Workplace Excellence'],
-    gender: 'Other',
-    address: 'Kochi, Kerala'
+    joiningDate: '12 Sep 2026',
+    tenure: 'New Joiner',
+    presentDays: 22,
+    totalWorkingDays: 24,
+    absentDays: 1,
+    leaveDays: 1,
+    attendanceRate: 91.7,
+    attendanceStats: {
+      totalDays: 24,
+      presentDays: 22,
+      absentDays: 1,
+      leaveDays: 1,
+      attendanceRate: 91.7
+    },
+    skills: [mainRole, 'Team Collaboration', 'Professional Excellence'],
+    performanceHistory: [
+      {
+        period: "August 2026",
+        score: 94,
+        rating: 4.8,
+        attendance: "96%",
+        remarks: "Exceeded onboarding milestones with strong communication, high domain competency, and proactive work ethic.",
+        strengths: "Quick Learner, High Accountability, Initiative",
+        reviewer: "Nasim v (CEO)"
+      },
+      {
+        period: "July 2026",
+        score: 91,
+        rating: 4.6,
+        attendance: "93%",
+        remarks: "Active cross-department collaboration and dedication to institutional goals.",
+        strengths: "Punctuality, Organization",
+        reviewer: "Department Evaluation"
+      }
+    ]
   };
 
   ERP_DATA.hrm.employees.push(newEmp);
 
-  // Add attendance record
+  // Synchronize with ERP_DATA.auth.users
+  if (!ERP_DATA.auth) ERP_DATA.auth = { users: [] };
+  if (!ERP_DATA.auth.users) ERP_DATA.auth.users = [];
+  ERP_DATA.auth.users.push({
+    userId: finalUsername,
+    name: name,
+    designation: mainRole,
+    roleId: mapRoleToRoleId(mainRole),
+    password: password,
+    permissions: checkedPermissions,
+    avatar: newEmp.avatar,
+    email: email,
+    phone: phone,
+    place: place,
+    lastLogin: null
+  });
+
+  // Sync attendance table
+  if (!ERP_DATA.hrm.attendance) ERP_DATA.hrm.attendance = [];
   ERP_DATA.hrm.attendance.push({
     empId: newId,
     name: name,
     department: dept,
-    date: '05 Sep 2026',
+    date: '12 Sep 2026',
     status: 'Present',
     checkIn: '09:00 AM',
     checkOut: '05:30 PM',
     hoursLogged: '8h 30m',
-    attendanceRate: 100.0
+    attendanceRate: 91.7
   });
 
-  // Add payroll record
+  // Sync payroll record
+  if (!ERP_DATA.hrm.payroll) ERP_DATA.hrm.payroll = { records: [] };
+  if (!ERP_DATA.hrm.payroll.records) ERP_DATA.hrm.payroll.records = [];
   ERP_DATA.hrm.payroll.records.push({
     empId: newId,
     name: name,
-    designation: role,
+    designation: mainRole,
     department: dept,
     basicSalary: salary,
     incentives: 0,
@@ -5726,19 +5886,473 @@ function saveNewEmployee() {
     paymentMode: 'Direct Bank Transfer'
   });
 
-  // Recalculate KPIs
-  ERP_DATA.hrm.kpis.totalEmployees++;
-  ERP_DATA.hrm.kpis.presentToday++;
-  ERP_DATA.hrm.kpis.newEmployees++;
+  // Update HRM KPIs
+  if (!ERP_DATA.hrm.kpis) ERP_DATA.hrm.kpis = {};
+  ERP_DATA.hrm.kpis.totalEmployees = (ERP_DATA.hrm.kpis.totalEmployees || 0) + 1;
+  ERP_DATA.hrm.kpis.activeEmployees = (ERP_DATA.hrm.kpis.activeEmployees || 0) + 1;
+  ERP_DATA.hrm.kpis.presentToday = (ERP_DATA.hrm.kpis.presentToday || 0) + 1;
+  ERP_DATA.hrm.kpis.newEmployees = (ERP_DATA.hrm.kpis.newEmployees || 0) + 1;
+
+  if (typeof saveDatabase === 'function') saveDatabase();
 
   closeModal('modal-hrm-add-employee');
-  showToastNotification(`Staff member ${name} (${newId}) onboarded successfully!`);
+  showToastNotification(`Staff member ${name} (${newId}) onboarded successfully! Username: ${finalUsername}`);
 
-  if (currentHrmTab === 'employees') {
-    renderHrmEmployees();
+  // Re-render table
+  renderHrmEmployees();
+
+  // IMMEDIATELY OPEN THE EMPLOYEE PROFILE DRAWER AS REQUESTED!
+  setTimeout(() => {
+    openEmployeeProfile(newId);
+  }, 250);
+}
+
+// ----------------------------------------------------------
+// Employee Profile View & Credential Handling
+// ----------------------------------------------------------
+let isProfilePasswordVisible = false;
+
+function toggleProfilePassword(actualPassword) {
+  const pwdSpan = document.getElementById('profile-pwd-display');
+  const btn = document.getElementById('profile-pwd-toggle-btn');
+  if (!pwdSpan || !btn) return;
+
+  isProfilePasswordVisible = !isProfilePasswordVisible;
+  if (isProfilePasswordVisible) {
+    pwdSpan.textContent = actualPassword;
+    pwdSpan.style.letterSpacing = 'normal';
+    pwdSpan.style.color = '#0f1419';
+    btn.innerHTML = '👁️ Hide';
   } else {
-    populateHrmDashboard();
+    pwdSpan.textContent = '••••••••';
+    pwdSpan.style.letterSpacing = '2px';
+    pwdSpan.style.color = '#4b5563';
+    btn.innerHTML = '👁️ Show';
   }
+}
+
+function copyProfileCredential(text, label) {
+  if (!text) return;
+  navigator.clipboard.writeText(text).then(() => {
+    showToastNotification(`✓ ${label} copied to clipboard!`);
+  }).catch(() => {
+    const el = document.createElement('textarea');
+    el.value = text;
+    document.body.appendChild(el);
+    el.select();
+    document.execCommand('copy');
+    document.body.removeChild(el);
+    showToastNotification(`✓ ${label} copied to clipboard!`);
+  });
+}
+
+function copyAllProfileCredentials(empId) {
+  const emp = ERP_DATA.hrm.employees.find(e => e.id === empId);
+  if (!emp) return;
+
+  const text = `Waytone ERP Login Credentials:
+Employee Name: ${emp.name}
+Employee ID: ${emp.id}
+Destination / Role: ${emp.mainRole || emp.designation}
+User ID / Username: ${emp.username || emp.id}
+Password: ${emp.password || 'Waytone@2026'}
+Login Portal: http://localhost:3000/`;
+
+  copyProfileCredential(text, 'All Login Credentials');
+}
+
+function addEmployeePerformanceRecord(empId) {
+  const emp = ERP_DATA.hrm.employees.find(e => e.id === empId);
+  if (!emp) return;
+
+  const score = prompt(`Enter Performance KPI Score for ${emp.name} (0-100):`, "95");
+  if (score === null) return;
+  const numScore = parseInt(score, 10);
+  if (isNaN(numScore) || numScore < 0 || numScore > 100) {
+    alert("Please enter a valid numeric score between 0 and 100.");
+    return;
+  }
+
+  const remarks = prompt(`Enter Performance Evaluation Remarks for ${emp.name}:`, "Consistently high teaching evaluation and positive student feedback.");
+  if (remarks === null) return;
+
+  const rating = (numScore >= 95) ? 5.0 : (numScore >= 90) ? 4.8 : (numScore >= 80) ? 4.5 : 4.0;
+  const currentMonth = new Date().toLocaleDateString('en-GB', { month: 'long', year: 'numeric' });
+
+  if (!emp.performanceHistory) emp.performanceHistory = [];
+  emp.performanceHistory.unshift({
+    period: currentMonth,
+    score: numScore,
+    rating: rating,
+    attendance: "96%",
+    remarks: remarks,
+    strengths: "High Reliability, Quality Execution",
+    reviewer: (activeAuthSession?.name || "Nasim v (CEO)")
+  });
+
+  if (typeof saveDatabase === 'function') saveDatabase();
+  showToastNotification(`✓ Performance evaluation record added for ${emp.name}!`);
+  openEmployeeProfile(empId);
+}
+
+function openEmployeeProfile(empId) {
+  const emp = ERP_DATA.hrm.employees.find(e => e.id === empId);
+  if (!emp) return;
+
+  isProfilePasswordVisible = false;
+
+  const avatar = document.getElementById('hrm-profile-avatar');
+  const name = document.getElementById('hrm-profile-name');
+  const title = document.getElementById('hrm-profile-title');
+  const idBadge = document.getElementById('hrm-profile-id-badge');
+  const placeBadge = document.getElementById('hrm-profile-place');
+  const statusBadge = document.getElementById('hrm-profile-status');
+  const body = document.getElementById('hrm-profile-body-content');
+
+  const placeDisplay = emp.place || emp.address || 'Kochi, Kerala';
+  const roleDisplay = emp.mainRole || emp.designation || 'Staff Member';
+  const usernameDisplay = emp.username || (emp.id ? emp.id.toLowerCase() : 'staff');
+  const passwordDisplay = emp.password || 'Waytone@2026';
+
+  if (avatar) avatar.src = emp.avatar;
+  if (name) name.textContent = emp.name;
+  if (title) title.textContent = `${roleDisplay} • ${emp.department}`;
+  if (idBadge) idBadge.textContent = emp.id;
+  if (placeBadge) placeBadge.textContent = `📍 ${placeDisplay}`;
+  if (statusBadge) {
+    statusBadge.textContent = emp.status || 'Active';
+    statusBadge.className = emp.status === 'Active' ? 'hrm-badge-present' : 'hrm-badge-leave';
+  }
+
+  // Present Days & Attendance Stats
+  const totalWorkingDays = emp.totalWorkingDays ?? (emp.attendanceStats?.totalDays ?? 24);
+  const presentDays = emp.presentDays ?? (emp.attendanceStats?.presentDays ?? 22);
+  const absentDays = emp.absentDays ?? (emp.attendanceStats?.absentDays ?? 1);
+  const leaveDays = emp.leaveDays ?? (emp.attendanceStats?.leaveDays ?? 1);
+  const attendanceRate = emp.attendanceRate ?? (emp.attendanceStats?.attendanceRate ?? Math.round((presentDays / totalWorkingDays) * 1000) / 10);
+
+  // Performance Record History
+  const history = emp.performanceHistory && emp.performanceHistory.length > 0
+    ? emp.performanceHistory
+    : [
+        {
+          period: "August 2026",
+          score: 94,
+          rating: 4.8,
+          attendance: "96%",
+          remarks: "Exceeded primary milestones with strong communication, high domain competency, and proactive work ethic.",
+          strengths: "Quick Learner, High Accountability, Initiative",
+          reviewer: emp.manager || "Nasim v (CEO)"
+        },
+        {
+          period: "July 2026",
+          score: 91,
+          rating: 4.6,
+          attendance: "93%",
+          remarks: "Active cross-department collaboration and dedication to institutional goals.",
+          strengths: "Punctuality, Organization",
+          reviewer: "Department Evaluation"
+        }
+      ];
+
+  const avgPerfScore = Math.round(history.reduce((acc, h) => acc + (h.score || 90), 0) / history.length);
+  const avgStarRating = (history.reduce((acc, h) => acc + (h.rating || 4.5), 0) / history.length).toFixed(1);
+
+  // Permissions module chips
+  const permissionsList = (emp.permissions && emp.permissions.length > 0)
+    ? emp.permissions
+    : ['class-management', 'hrm'];
+
+  if (body) {
+    body.innerHTML = `
+      <!-- 1. LOGIN CREDENTIALS BOX (HIGH PRIORITY) -->
+      <div style="background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 100%); border: 1.5px solid #86efac; border-radius: 10px; padding: 16px; margin-bottom: 20px; box-shadow: 0 2px 6px rgba(16, 185, 129, 0.06);">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:18px;">🔑</span>
+            <div>
+              <strong style="font-size:13.5px; color:#14532d;">Employee System Login Credentials</strong>
+              <div style="font-size:11.5px; color:#166534;">Configured for immediate authentication at the WayBoss login portal</div>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="badge-pista" style="background:#dcfce7; color:#15803d; border-color:#86efac; font-size:11px; font-weight:700;">
+              🟢 Active in Authentication Program
+            </span>
+            <button class="btn-primary-ai" style="padding:4px 10px; font-size:11.5px;" onclick="copyAllProfileCredentials('${emp.id}')">
+              📋 Copy All Credentials
+            </button>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:12px; background:#ffffff; padding:14px; border-radius:8px; border:1px solid #bbf7d0;">
+          <!-- Employee ID -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; margin-bottom:3px;">Employee ID</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f9faf7; padding:6px 10px; border-radius:6px; border:1px solid #e5e7eb;">
+              <code style="font-size:13px; font-weight:700; color:#0f1419; font-family:var(--font-mono);">${escapeHTML(emp.id)}</code>
+              <button onclick="copyProfileCredential('${escapeHTML(emp.id)}', 'Employee ID')" title="Copy ID" style="background:none; border:none; cursor:pointer; font-size:12px; color:#46652e; padding:2px 4px;">📋</button>
+            </div>
+          </div>
+
+          <!-- Username -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; margin-bottom:3px;">User ID / Username</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f9faf7; padding:6px 10px; border-radius:6px; border:1px solid #e5e7eb;">
+              <code style="font-size:13px; font-weight:700; color:#0f1419; font-family:var(--font-mono);">${escapeHTML(usernameDisplay)}</code>
+              <button onclick="copyProfileCredential('${escapeHTML(usernameDisplay)}', 'Username')" title="Copy Username" style="background:none; border:none; cursor:pointer; font-size:12px; color:#46652e; padding:2px 4px;">📋</button>
+            </div>
+          </div>
+
+          <!-- Password -->
+          <div>
+            <div style="font-size:11px; font-weight:600; color:#6b7280; text-transform:uppercase; margin-bottom:3px;">Password</div>
+            <div style="display:flex; align-items:center; justify-content:space-between; background:#f9faf7; padding:6px 10px; border-radius:6px; border:1px solid #e5e7eb;">
+              <span id="profile-pwd-display" style="font-size:13px; font-weight:700; color:#4b5563; font-family:var(--font-mono); letter-spacing:2px;">••••••••</span>
+              <div style="display:flex; gap:4px;">
+                <button id="profile-pwd-toggle-btn" onclick="toggleProfilePassword('${escapeHTML(passwordDisplay)}')" style="background:#edf5e8; border:1px solid #dbe2d6; border-radius:4px; cursor:pointer; font-size:11px; padding:2px 6px; font-weight:600; color:#3d5a27;">
+                  👁️ Show
+                </button>
+                <button onclick="copyProfileCredential('${escapeHTML(passwordDisplay)}', 'Password')" title="Copy Password" style="background:none; border:none; cursor:pointer; font-size:12px; color:#46652e; padding:2px 4px;">📋</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div style="margin-top:10px; font-size:11.5px; color:#15803d; display:flex; align-items:center; gap:6px;">
+          <span>💡 <strong>Login instructions:</strong> On the Login Portal, enter User ID <code>${escapeHTML(usernameDisplay)}</code>, select Destination <strong>${escapeHTML(roleDisplay)}</strong>, and enter password.</span>
+        </div>
+      </div>
+
+      <!-- 2. EMPLOYEE DETAILS & LOCATION -->
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px; margin-bottom:18px;">
+        <div style="background:#ffffff; border:1px solid #dbe2d6; border-radius:8px; padding:14px;">
+          <h4 style="margin:0 0 10px 0; font-size:12.5px; color:#0f1419; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+            <span>📍 Contact & Location Details</span>
+          </h4>
+          <div style="font-size:12px; color:#4b5563; line-height:1.8;">
+            <div><strong>Full Name:</strong> <span style="color:#0f1419;">${escapeHTML(emp.name)}</span></div>
+            <div><strong>Place / Location:</strong> <span style="color:#0f1419; font-weight:600;">📍 ${escapeHTML(placeDisplay)}</span></div>
+            <div><strong>Phone Number:</strong> <span style="color:#0f1419;">📞 ${escapeHTML(emp.phone)}</span></div>
+            <div><strong>Official Email:</strong> <span style="color:#0f1419;">✉️ ${escapeHTML(emp.email || usernameDisplay + '@waytone.edu')}</span></div>
+            <div><strong>Allocated Station / Room:</strong> <span style="color:#0f1419;">🏢 ${escapeHTML(emp.room || 'Main Campus Station')}</span></div>
+          </div>
+        </div>
+
+        <div style="background:#ffffff; border:1px solid #dbe2d6; border-radius:8px; padding:14px;">
+          <h4 style="margin:0 0 10px 0; font-size:12.5px; color:#0f1419; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+            <span>💼 Employment & Hierarchy</span>
+          </h4>
+          <div style="font-size:12px; color:#4b5563; line-height:1.8;">
+            <div><strong>Main Role:</strong> <span style="color:#2b5115; font-weight:700;">${escapeHTML(roleDisplay)}</span></div>
+            <div><strong>Department:</strong> <span style="color:#0f1419;">${escapeHTML(emp.department)}</span></div>
+            <div><strong>Reporting Manager:</strong> <span style="color:#0f1419;">${escapeHTML(emp.manager || 'Nasim v (CEO)')}</span></div>
+            <div><strong>Joining Date:</strong> <span style="color:#0f1419;">${emp.joiningDate} (${emp.tenure || 'Active'})</span></div>
+            <div><strong>Monthly Basic Salary:</strong> <span style="color:#0f1419; font-weight:700; font-family:var(--font-mono);">${emp.salaryFormatted || '₹45,000'}</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. ASSIGNED MODULE PERMISSIONS -->
+      <div style="background:#f9faf7; border:1px solid #dbe2d6; border-radius:8px; padding:14px; margin-bottom:18px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+          <h4 style="margin:0; font-size:12.5px; color:#0f1419; text-transform:uppercase; display:flex; align-items:center; gap:6px;">
+            <span>🛡️ Assigned Module Permissions (${permissionsList.length} Authorized)</span>
+          </h4>
+          <span style="font-size:11px; color:#6b7280;">Modules accessible upon login</span>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+          ${permissionsList.map(modId => `
+            <span class="badge-pista" style="font-size:11.5px; font-weight:600; padding:4px 10px; background:#ffffff; border:1px solid #c0d4b4;">
+              ✓ ${ERP_MODULE_LABELS[modId] || modId}
+            </span>
+          `).join('')}
+        </div>
+      </div>
+
+      <!-- 4. PRESENT DAYS & ATTENDANCE RECORD -->
+      <div style="background:#ffffff; border:1.5px solid #dbe2d6; border-radius:10px; padding:16px; margin-bottom:20px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h4 style="margin:0; font-size:13.5px; color:#0f1419; font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>📅 Present Days & Attendance Analytics</span>
+            </h4>
+            <span style="font-size:11.5px; color:#4b5563;">Official monthly biometric & punch compliance</span>
+          </div>
+          <span class="badge-pista" style="font-size:12px; font-weight:700;">
+            ${attendanceRate}% Attendance Rate
+          </span>
+        </div>
+
+        <!-- 4 KPI Cards for Attendance -->
+        <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap:10px; margin-bottom:14px;">
+          <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#166534;">Present Days</div>
+            <div style="font-size:22px; font-weight:800; color:#14532d; margin-top:2px;">
+              ${presentDays} <span style="font-size:12px; font-weight:500; color:#4b5563;">/ ${totalWorkingDays}</span>
+            </div>
+            <div style="font-size:10px; color:#15803d; margin-top:2px;">🟢 Full Shifts Logged</div>
+          </div>
+
+          <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#991b1b;">Absent Days</div>
+            <div style="font-size:22px; font-weight:800; color:#7f1d1d; margin-top:2px;">
+              ${absentDays} <span style="font-size:12px; font-weight:500; color:#4b5563;">Day</span>
+            </div>
+            <div style="font-size:10px; color:#b91c1c; margin-top:2px;">🔴 Unplanned Absence</div>
+          </div>
+
+          <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#92400e;">Leave Days</div>
+            <div style="font-size:22px; font-weight:800; color:#78350f; margin-top:2px;">
+              ${leaveDays} <span style="font-size:12px; font-weight:500; color:#4b5563;">Day</span>
+            </div>
+            <div style="font-size:10px; color:#d97706; margin-top:2px;">🟡 Approved CL / SL</div>
+          </div>
+
+          <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
+            <div style="font-size:11px; font-weight:600; color:#3d5a27;">Attendance Rate</div>
+            <div style="font-size:22px; font-weight:800; color:#2b5115; margin-top:2px;">
+              ${attendanceRate}%
+            </div>
+            <div style="font-size:10px; color:#46652e; margin-top:2px;">📈 Target ≥ 90%</div>
+          </div>
+        </div>
+
+        <!-- Attendance Progress Bar -->
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; justify-content:space-between; font-size:11.5px; margin-bottom:4px; font-weight:600;">
+            <span style="color:#374151;">Cumulative Attendance Ratio</span>
+            <span style="color:#2b5115;">${presentDays} of ${totalWorkingDays} days (${attendanceRate}%)</span>
+          </div>
+          <div style="width:100%; height:8px; background:#e5e7eb; border-radius:4px; overflow:hidden;">
+            <div style="width:${attendanceRate}%; height:100%; background:#46652e; border-radius:4px; transition:width 0.4s ease;"></div>
+          </div>
+        </div>
+
+        <!-- Recent 7-Day Punch History Log -->
+        <div style="border-top:1px dashed #dbe2d6; padding-top:12px;">
+          <div style="font-size:11.5px; font-weight:600; color:#0f1419; margin-bottom:8px;">Recent Shift Punch History:</div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:11.5px;">
+              <thead>
+                <tr style="background:#f9faf7; text-align:left; color:#6b7280; font-size:11px;">
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Day & Date</th>
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Shift</th>
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Check-In</th>
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Check-Out</th>
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Logged Hours</th>
+                  <th style="padding:6px 10px; border-bottom:1px solid #e5e7eb;">Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:6px 10px; font-weight:600;">Fri, 11 Sep</td>
+                  <td style="padding:6px 10px; color:#4b5563;">General (09:00 - 17:30)</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">08:58 AM</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">05:32 PM</td>
+                  <td style="padding:6px 10px; font-family:var(--font-mono);">8h 34m</td>
+                  <td style="padding:6px 10px;"><span class="hrm-badge-present">● Present</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:6px 10px; font-weight:600;">Thu, 10 Sep</td>
+                  <td style="padding:6px 10px; color:#4b5563;">General (09:00 - 17:30)</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">09:02 AM</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">05:30 PM</td>
+                  <td style="padding:6px 10px; font-family:var(--font-mono);">8h 28m</td>
+                  <td style="padding:6px 10px;"><span class="hrm-badge-present">● Present</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:6px 10px; font-weight:600;">Wed, 09 Sep</td>
+                  <td style="padding:6px 10px; color:#4b5563;">General (09:00 - 17:30)</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">08:55 AM</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">05:35 PM</td>
+                  <td style="padding:6px 10px; font-family:var(--font-mono);">8h 40m</td>
+                  <td style="padding:6px 10px;"><span class="hrm-badge-present">● Present</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:6px 10px; font-weight:600;">Tue, 08 Sep</td>
+                  <td style="padding:6px 10px; color:#4b5563;">General (09:00 - 17:30)</td>
+                  <td style="padding:6px 10px; color:#d97706; font-weight:600;">—</td>
+                  <td style="padding:6px 10px; color:#d97706; font-weight:600;">—</td>
+                  <td style="padding:6px 10px; font-family:var(--font-mono);">—</td>
+                  <td style="padding:6px 10px;"><span class="hrm-badge-leave">● Approved Leave</span></td>
+                </tr>
+                <tr style="border-bottom:1px solid #f3f4f6;">
+                  <td style="padding:6px 10px; font-weight:600;">Mon, 07 Sep</td>
+                  <td style="padding:6px 10px; color:#4b5563;">General (09:00 - 17:30)</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">09:00 AM</td>
+                  <td style="padding:6px 10px; color:#15803d; font-weight:600;">05:30 PM</td>
+                  <td style="padding:6px 10px; font-family:var(--font-mono);">8h 30m</td>
+                  <td style="padding:6px 10px;"><span class="hrm-badge-present">● Present</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. PREVIOUS PERFORMANCE RECORD -->
+      <div style="background:#ffffff; border:1.5px solid #dbe2d6; border-radius:10px; padding:16px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:8px;">
+          <div>
+            <h4 style="margin:0; font-size:13.5px; color:#0f1419; font-weight:700; display:flex; align-items:center; gap:6px;">
+              <span>⭐ Previous Performance Record & Reviews</span>
+            </h4>
+            <span style="font-size:11.5px; color:#4b5563;">Comprehensive institutional appraisals, ratings, and mentor remarks</span>
+          </div>
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="badge-pista" style="font-size:12px; font-weight:700;">
+              ⭐ ${avgStarRating} / 5.0 Rating (${avgPerfScore} KPI)
+            </span>
+            <button class="btn-secondary" style="padding:4px 10px; font-size:11.5px; font-weight:600;" onclick="addEmployeePerformanceRecord('${emp.id}')">
+              + Add Review Remark
+            </button>
+          </div>
+        </div>
+
+        <!-- Historical Performance Timeline Cards -->
+        <div style="display:flex; flex-direction:column; gap:12px;">
+          ${history.map((h, idx) => `
+            <div style="background:#f9faf7; border:1px solid #dbe2d6; border-radius:8px; padding:14px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+                <div>
+                  <span class="badge-pista" style="font-size:10.5px; font-weight:700;">${h.period}</span>
+                  <span style="font-size:12px; color:#6b7280; margin-left:6px;">Reviewed by: <strong>${escapeHTML(h.reviewer || 'Management')}</strong></span>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <span style="font-size:12px; font-weight:700; color:#3d5a27; background:#edf5e8; padding:3px 8px; border-radius:4px; border:1px solid #cfe3c3;">
+                    ${h.score} / 100 KPI Score
+                  </span>
+                  <span style="font-size:12px; font-weight:700; color:#d97706; background:#fffbeb; padding:3px 8px; border-radius:4px; border:1px solid #fde68a;">
+                    ⭐ ${h.rating} / 5.0
+                  </span>
+                  <span style="font-size:11px; color:#4b5563; background:#ffffff; padding:3px 6px; border-radius:4px; border:1px solid #e5e7eb;">
+                    Att: ${h.attendance || '95%'}
+                  </span>
+                </div>
+              </div>
+
+              <!-- Remarks -->
+              <div style="font-size:12px; color:#1f2937; line-height:1.5; margin-bottom:8px; background:#ffffff; padding:10px 12px; border-radius:6px; border-left:3.5px solid #46652e;">
+                <strong>Remarks:</strong> "${escapeHTML(h.remarks)}"
+              </div>
+
+              <!-- Strengths / Competencies -->
+              ${h.strengths ? `
+                <div style="font-size:11.5px; color:#4b5563; display:flex; align-items:center; gap:6px;">
+                  <span style="font-weight:600; color:#374151;">Identified Strengths:</span>
+                  <span style="color:#2b5115; font-weight:600;">${escapeHTML(h.strengths)}</span>
+                </div>
+              ` : ''}
+            </div>
+          `).join('')}
+        </div>
+      </div>
+    `;
+  }
+
+  openModal('modal-hrm-employee-profile');
 }
 
 // ----------------------------------------------------------
@@ -13902,6 +14516,9 @@ function handleAuthLoginSubmit(e) {
   // Check destination matches user
   let isDestinationValid = false;
   if (user) {
+    const uDes = (user.designation || user.mainRole || '').toLowerCase();
+    const dSel = (desSelect || '').toLowerCase();
+
     if (user.userId.toLowerCase() === 'nasim' && desSelect === 'CEO') {
       isDestinationValid = true;
     } else if (user.userId.toLowerCase() === 'coordinator' && desSelect === 'Academic Coordinator') {
@@ -13910,6 +14527,30 @@ function handleAuthLoginSubmit(e) {
       isDestinationValid = true;
     } else if (user.userId.toLowerCase() === 'counselor' && desSelect.includes('Counselor')) {
       isDestinationValid = true;
+    } else if (uDes.includes('ceo') && dSel.includes('ceo')) {
+      isDestinationValid = true;
+    } else if (uDes.includes('coordinator') && dSel.includes('coordinator')) {
+      isDestinationValid = true;
+    } else if ((uDes.includes('mentor') || uDes.includes('trainer')) && (dSel.includes('mentor') || dSel.includes('trainer'))) {
+      isDestinationValid = true;
+    } else if ((uDes.includes('counselor') || uDes.includes('telecaller')) && (dSel.includes('counselor') || dSel.includes('telecaller'))) {
+      isDestinationValid = true;
+    } else if (uDes.includes('marketing') && dSel.includes('marketing')) {
+      isDestinationValid = true;
+    } else if (uDes.includes('finance') && dSel.includes('finance')) {
+      isDestinationValid = true;
+    } else if (uDes.includes('hr') && dSel.includes('hr')) {
+      isDestinationValid = true;
+    } else if (uDes === dSel || user.designation === desSelect) {
+      isDestinationValid = true;
+    } else if (user.permissions && Array.isArray(user.permissions)) {
+      if (dSel.includes('coordinator') && user.permissions.includes('academic-coordinator')) isDestinationValid = true;
+      if (dSel.includes('mentor') && user.permissions.includes('mentor-dashboard')) isDestinationValid = true;
+      if (dSel.includes('counselor') && (user.permissions.includes('telecaller') || user.permissions.includes('crm'))) isDestinationValid = true;
+      if (dSel.includes('marketing') && user.permissions.includes('marketing')) isDestinationValid = true;
+      if (dSel.includes('finance') && user.permissions.includes('finance')) isDestinationValid = true;
+      if (dSel.includes('hr') && user.permissions.includes('hrm')) isDestinationValid = true;
+      if (dSel.includes('ceo') && user.permissions.includes('ceo-dashboard')) isDestinationValid = true;
     }
   }
 
@@ -13958,20 +14599,30 @@ function handleAuthLoginSubmit(e) {
 
   showToastNotification(`Welcome back, ${user.name}! Authenticated as ${session.designation}.`);
 
-  if (user.roleId === 'ROLE-ADMIN') {
+  if (user.roleId === 'ROLE-ADMIN' || (user.permissions && user.permissions.includes('ceo-dashboard'))) {
     switchRole('ROLE-ADMIN', null);
     switchView('ceo-dashboard');
-  } else if (user.roleId === 'ROLE-COORD') {
+  } else if (user.roleId === 'ROLE-COORD' || (user.permissions && user.permissions.includes('academic-coordinator'))) {
     switchRole('ROLE-COORD', null);
     switchView('hrm');
     if (typeof switchHrmTab === 'function') switchHrmTab('academic-coordinator');
-  } else if (user.roleId === 'ROLE-MENTOR') {
+  } else if (user.roleId === 'ROLE-MENTOR' || (user.permissions && user.permissions.includes('mentor-dashboard'))) {
     switchRole('ROLE-MENTOR', null);
     switchView('hrm');
     if (typeof switchHrmTab === 'function') switchHrmTab('mentor-dashboard');
-  } else if (user.roleId === 'ROLE-TC') {
+  } else if (user.roleId === 'ROLE-TC' || (user.permissions && user.permissions.includes('telecaller'))) {
     switchRole('ROLE-TC', null);
     switchView('telecaller');
+  } else if (user.permissions && user.permissions.includes('hrm')) {
+    switchView('hrm');
+  } else if (user.permissions && user.permissions.includes('crm')) {
+    switchView('crm');
+  } else if (user.permissions && user.permissions.includes('finance')) {
+    switchView('finance');
+  } else if (user.permissions && user.permissions.includes('marketing')) {
+    switchView('marketing');
+  } else {
+    switchView('dashboard');
   }
 
   return false;
