@@ -877,6 +877,7 @@ function getInitialCleanSchema() {
           designation: "Admin",
           roleId: "ROLE-ADMIN",
           password: "Nasim@2015",
+          permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
           avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
           email: "nasim.v@waytone.edu",
           phone: "+91 98765 00001",
@@ -888,6 +889,7 @@ function getInitialCleanSchema() {
           designation: "Admin",
           roleId: "ROLE-ADMIN",
           password: "Nasim@2015",
+          permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
           avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
           email: "admin@waytone.edu",
           phone: "+91 98765 00001",
@@ -899,6 +901,7 @@ function getInitialCleanSchema() {
           designation: "Academic Coordinator",
           roleId: "ROLE-COORD",
           password: "coord@2026",
+          permissions: ["academic-coordinator", "class-management", "catalogue", "hrm"],
           avatar: "AC",
           email: "coordinator@waytone.edu",
           phone: "+91 98765 00002",
@@ -910,6 +913,7 @@ function getInitialCleanSchema() {
           designation: "Faculty Mentor / Trainer",
           roleId: "ROLE-MENTOR",
           password: "mentor@2026",
+          permissions: ["mentor-dashboard", "class-management", "catalogue"],
           avatar: "FM",
           email: "mentor@waytone.edu",
           phone: "+91 98765 00003",
@@ -921,6 +925,7 @@ function getInitialCleanSchema() {
           designation: "Admissions Counselor / Telecaller",
           roleId: "ROLE-TC",
           password: "counselor@2026",
+          permissions: ["telecaller", "crm", "catalogue"],
           avatar: "AC",
           email: "counselor@waytone.edu",
           phone: "+91 98765 43210",
@@ -980,6 +985,19 @@ function loadDatabase() {
         if (nasimUser) {
           nasimUser.password = "Nasim@2015";
           nasimUser.designation = "Admin";
+          nasimUser.permissions = ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"];
+        }
+        const coordUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'coordinator');
+        if (coordUser && (!coordUser.permissions || coordUser.permissions.length === 0)) {
+          coordUser.permissions = ["academic-coordinator", "class-management", "catalogue", "hrm"];
+        }
+        const mentorUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'mentor');
+        if (mentorUser && (!mentorUser.permissions || mentorUser.permissions.length === 0)) {
+          mentorUser.permissions = ["mentor-dashboard", "class-management", "catalogue"];
+        }
+        const counselorUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'counselor');
+        if (counselorUser && (!counselorUser.permissions || counselorUser.permissions.length === 0)) {
+          counselorUser.permissions = ["telecaller", "crm", "catalogue"];
         }
         if (!ERP_DATA.auth.users.some(u => u.userId.toLowerCase() === 'admin')) {
           ERP_DATA.auth.users.push({
@@ -988,6 +1006,7 @@ function loadDatabase() {
             designation: "Admin",
             roleId: "ROLE-ADMIN",
             password: "Nasim@2015",
+            permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
             avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
             email: "admin@waytone.edu",
             phone: "+91 98765 00001",

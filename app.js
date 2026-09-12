@@ -64,7 +64,7 @@ function initApp() {
     }
     if (urlParams.has('role')) {
       const r = urlParams.get('role');
-      if (r === 'telecaller') switchRole('ROLE-TC', 'EMP-CRM-01');
+      if (r === 'telecaller' || r === 'counselor') switchRole('ROLE-TC', 'EMP-CRM-01');
       else if (r === 'marketing') switchRole('ROLE-MARKETING', 'EMP-MKT-01');
       else if (r === 'coordinator') switchRole('ROLE-COORD', null);
       else if (r === 'mentor') switchRole('ROLE-MENTOR', null);
@@ -141,18 +141,202 @@ function initApp() {
 }
 
 // ==========================================================
+// ROLE-BASED ACCESS CONTROL & NAVIGATION FILTERING (RBAC)
+// ==========================================================
+function isUserAdmin(session) {
+  if (!session) return true;
+  const u = (session.userId || '').toLowerCase();
+  const d = (session.designation || '').toLowerCase();
+  return u === 'nasim' || u === 'admin' || session.roleId === 'ROLE-ADMIN' || d === 'admin' || d === 'ceo';
+}
+
+function getUserEffectivePermissions(session) {
+  const allModules = ['ceo-dashboard', 'crm', 'finance', 'class-management', 'hrm', 'catalogue', 'wayboss-ai', 'telecaller', 'marketing', 'academic-coordinator', 'mentor-dashboard'];
+  if (!session) return allModules;
+  if (isUserAdmin(session)) return allModules;
+
+  const userId = (session.userId || '').toLowerCase();
+
+  // Check auth user
+  const authU = ERP_DATA.auth?.users?.find(u => u.userId.toLowerCase() === userId);
+  if (authU && Array.isArray(authU.permissions) && authU.permissions.length > 0) {
+    return authU.permissions;
+  }
+
+  // Check employee record
+  const emp = ERP_DATA.hrm?.employees?.find(e => (e.username || '').toLowerCase() === userId || (e.id || '').toLowerCase() === userId);
+  if (emp && Array.isArray(emp.permissions) && emp.permissions.length > 0) {
+    return emp.permissions;
+  }
+
+  // Fallbacks by role
+  const des = (session.designation || '').toLowerCase();
+  if (session.roleId === 'ROLE-COORD' || des.includes('coordinator')) {
+    return ['academic-coordinator', 'class-management', 'catalogue', 'hrm'];
+  }
+  if (session.roleId === 'ROLE-MENTOR' || des.includes('mentor')) {
+    return ['mentor-dashboard', 'class-management', 'catalogue'];
+  }
+  if (session.roleId === 'ROLE-TC' || des.includes('counselor') || des.includes('telecaller')) {
+    return ['telecaller', 'crm', 'catalogue'];
+  }
+  if (des.includes('hr')) {
+    return ['hrm', 'class-management', 'catalogue'];
+  }
+
+  return ['class-management', 'catalogue'];
+}
+
+function getDefaultViewForUser(session, permissions) {
+  if (!session || isUserAdmin(session)) return 'ceo-dashboard';
+
+  const perms = permissions || getUserEffectivePermissions(session);
+  const des = (session.designation || '').toLowerCase();
+
+  if (des.includes('mentor') && perms.includes('mentor-dashboard')) return 'mentor-dashboard';
+  if (des.includes('coordinator') && perms.includes('academic-coordinator')) return 'academic-coordinator';
+  if ((des.includes('counselor') || des.includes('telecaller')) && perms.includes('telecaller')) return 'telecaller';
+
+  const order = ['academic-coordinator', 'mentor-dashboard', 'telecaller', 'class-management', 'hrm', 'crm', 'finance', 'catalogue', 'marketing', 'wayboss-ai'];
+  for (const o of order) {
+    if (perms.includes(o)) return o;
+  }
+  return perms[0] || 'class-management';
+}
+
+function updateSidebarNavigationForUser(session) {
+  const isAdmin = !session || isUserAdmin(session);
+  const roleSwitcher = document.getElementById('header-role-switcher-container');
+  if (roleSwitcher) {
+    roleSwitcher.style.display = isAdmin ? 'flex' : 'none';
+  }
+
+  const permissions = getUserEffectivePermissions(session);
+
+  // Filter nav items
+  document.querySelectorAll('.sidebar .nav-item[data-perm]').forEach(item => {
+    const perm = item.getAttribute('data-perm');
+    if (perm === 'ceo-dashboard') {
+      item.style.display = isAdmin ? 'flex' : 'none';
+    } else if (isAdmin) {
+      item.style.display = 'flex';
+    } else {
+      item.style.display = permissions.includes(perm) ? 'flex' : 'none';
+    }
+  });
+
+  // Filter section headers
+  const sectionMenus = [
+    { titleId: 'sidebar-sec-core-title', menuId: 'sidebar-sec-core-menu' },
+    { titleId: 'sidebar-sec-academics-title', menuId: 'sidebar-sec-academics-menu' },
+    { titleId: 'sidebar-sec-ai-title', menuId: 'sidebar-sec-ai-menu' },
+    { titleId: 'sidebar-sec-counselor-title', menuId: 'sidebar-sec-counselor-menu' },
+    { titleId: 'sidebar-marketing-section-title', menuId: 'sidebar-marketing-menu' }
+  ];
+
+  sectionMenus.forEach(sec => {
+    const titleEl = document.getElementById(sec.titleId);
+    const menuEl = document.getElementById(sec.menuId);
+    if (titleEl && menuEl) {
+      if (isAdmin) {
+        titleEl.style.display = 'block';
+        menuEl.style.display = 'block';
+      } else {
+        const visibleItems = Array.from(menuEl.querySelectorAll('.nav-item')).filter(li => li.style.display !== 'none');
+        titleEl.style.display = visibleItems.length > 0 ? 'block' : 'none';
+        menuEl.style.display = visibleItems.length > 0 ? 'block' : 'none';
+      }
+    }
+  });
+
+  const aiFooter = document.getElementById('sidebar-footer-ai');
+  if (aiFooter) {
+    aiFooter.style.display = (isAdmin || permissions.includes('wayboss-ai')) ? 'block' : 'none';
+  }
+
+  // Hide all "Back to CEO Dashboard" buttons throughout the ERP for non-admin employees
+  document.querySelectorAll('button[onclick*="ceo-dashboard"], .back-to-ceo-btn').forEach(btn => {
+    btn.style.display = isAdmin ? '' : 'none';
+  });
+}
+
+function filterHrmTabsForUser(session) {
+  const isAdmin = !session || isUserAdmin(session);
+  const permissions = getUserEffectivePermissions(session);
+  const hasGeneralHrm = isAdmin || permissions.includes('hrm');
+  const hasCoord = permissions.includes('academic-coordinator');
+  const hasMentor = permissions.includes('mentor-dashboard');
+
+  document.querySelectorAll('.hrm-tab-btn').forEach(btn => {
+    const tab = btn.getAttribute('data-hrm-tab');
+    if (hasGeneralHrm) {
+      btn.style.display = 'inline-flex';
+    } else if (tab === 'academic-coordinator') {
+      btn.style.display = hasCoord ? 'inline-flex' : 'none';
+    } else if (tab === 'mentor-dashboard') {
+      btn.style.display = hasMentor ? 'inline-flex' : 'none';
+    } else {
+      btn.style.display = 'none';
+    }
+  });
+
+  const addEmpBtn = document.querySelector('button[onclick="openAddEmployeeModal()"]');
+  if (addEmpBtn) {
+    addEmpBtn.style.display = hasGeneralHrm ? 'inline-flex' : 'none';
+  }
+
+  const payrollBtn = document.querySelector('button[onclick*="switchHrmTab(\'payroll\')"]');
+  if (payrollBtn) {
+    payrollBtn.style.display = hasGeneralHrm ? 'inline-flex' : 'none';
+  }
+}
+
+// ==========================================================
 // 1. VIEW ROUTER & NAVIGATION
 // ==========================================================
 function switchView(viewId) {
   if (viewId === 'classes') viewId = 'class-management';
+
+  // Direct shortcuts for Academic Coordinator and Mentor Dashboard
+  if (viewId === 'academic-coordinator') {
+    switchView('hrm');
+    switchHrmTab('academic-coordinator');
+    return;
+  }
+  if (viewId === 'mentor-dashboard') {
+    switchView('hrm');
+    switchHrmTab('mentor-dashboard');
+    return;
+  }
+
+  // Permission Guard for non-admin sessions
+  if (activeAuthSession && !isUserAdmin(activeAuthSession)) {
+    const userPerms = getUserEffectivePermissions(activeAuthSession);
+    let permKey = viewId;
+    if (viewId === 'data-pool') permKey = 'crm';
+
+    // Disallow CEO Dashboard or unpermitted views
+    if (viewId === 'ceo-dashboard' || (permKey !== 'hrm' && !userPerms.includes(permKey))) {
+      showToastNotification(`⚠️ Access Restricted: You do not have permission to view ${viewId}.`);
+      const defaultView = getDefaultViewForUser(activeAuthSession, userPerms);
+      if (defaultView && defaultView !== viewId) {
+        return switchView(defaultView);
+      }
+      return;
+    }
+  }
+
   currentView = viewId;
 
   // Update Nav items
   document.querySelectorAll('.nav-item').forEach(item => {
-    if (item.getAttribute('data-view') === viewId) {
-      item.classList.add('active');
+    const dView = item.getAttribute('data-view');
+    if (currentView === 'hrm' && typeof currentHrmTab !== 'undefined' && currentHrmTab === 'academic-coordinator') {
+      item.classList.toggle('active', dView === 'academic-coordinator');
+    } else if (currentView === 'hrm' && typeof currentHrmTab !== 'undefined' && currentHrmTab === 'mentor-dashboard') {
+      item.classList.toggle('active', dView === 'mentor-dashboard');
     } else {
-      item.classList.remove('active');
+      item.classList.toggle('active', dView === viewId);
     }
   });
 
@@ -178,10 +362,18 @@ function switchView(viewId) {
     'catalogue': '5. Product Catalogue',
     'telecaller': '7. Telecaller Dashboard',
     'marketing': '8. Marketing Head Dashboard',
-    'wayboss-ai': '6. WayBoss AI Assistant'
+    'wayboss-ai': '6. WayBoss AI Assistant',
+    'academic-coordinator': 'Academic Coordinator Workspace',
+    'mentor-dashboard': 'Mentor Dashboard'
   };
   if (breadcrumb) {
-    breadcrumb.textContent = viewTitles[viewId] || 'Dashboard';
+    if (viewId === 'hrm' && typeof currentHrmTab !== 'undefined' && currentHrmTab === 'academic-coordinator') {
+      breadcrumb.textContent = 'Academic Coordinator Workspace';
+    } else if (viewId === 'hrm' && typeof currentHrmTab !== 'undefined' && currentHrmTab === 'mentor-dashboard') {
+      breadcrumb.textContent = 'Mentor Dashboard';
+    } else {
+      breadcrumb.textContent = viewTitles[viewId] || 'Dashboard';
+    }
   }
 
   // If opening Data Pool dashboard, ensure it is freshly rendered
@@ -5267,6 +5459,18 @@ let currentHrmTab = 'dashboard';
 let currentHrmDeptFilter = 'all';
 
 function switchHrmTab(tabId) {
+  // Permission guard for HRM sub-tabs
+  if (activeAuthSession && !isUserAdmin(activeAuthSession)) {
+    const userPerms = getUserEffectivePermissions(activeAuthSession);
+    const hasGeneralHrm = userPerms.includes('hrm');
+    if (!hasGeneralHrm) {
+      if (tabId !== 'academic-coordinator' && tabId !== 'mentor-dashboard') {
+        if (userPerms.includes('mentor-dashboard')) tabId = 'mentor-dashboard';
+        else if (userPerms.includes('academic-coordinator')) tabId = 'academic-coordinator';
+      }
+    }
+  }
+
   if (currentView !== 'hrm') {
     switchView('hrm');
   }
@@ -5289,6 +5493,29 @@ function switchHrmTab(tabId) {
   const targetPane = document.getElementById(`hrm-pane-${tabId}`);
   if (targetPane) {
     targetPane.classList.add('active');
+  }
+
+  // Update sidebar active link and breadcrumb
+  document.querySelectorAll('.sidebar .nav-item').forEach(item => {
+    const dView = item.getAttribute('data-view');
+    if (tabId === 'academic-coordinator') {
+      item.classList.toggle('active', dView === 'academic-coordinator');
+    } else if (tabId === 'mentor-dashboard') {
+      item.classList.toggle('active', dView === 'mentor-dashboard');
+    } else {
+      item.classList.toggle('active', dView === 'hrm');
+    }
+  });
+
+  const breadcrumb = document.getElementById('breadcrumb-current');
+  if (breadcrumb) {
+    if (tabId === 'academic-coordinator') {
+      breadcrumb.textContent = 'Academic Coordinator Workspace';
+    } else if (tabId === 'mentor-dashboard') {
+      breadcrumb.textContent = 'Mentor Dashboard';
+    } else {
+      breadcrumb.textContent = '4. HRM & Faculty';
+    }
   }
 
   // Refresh tab-specific views
@@ -8532,53 +8759,63 @@ function switchRole(roleId, counselorId) {
         </div>
       `;
     } else if (roleId === 'ROLE-COORD') {
+      const uName = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.name) ? activeAuthSession.name : 'Academic Coord';
+      const uTitle = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.designation) ? activeAuthSession.designation : 'Academic Coordinator';
       ceoBadge.innerHTML = `
         <div style="width:36px; height:36px; border-radius:50%; background:#2a4a35; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">
           AC
         </div>
         <div class="ceo-info">
-          <span class="ceo-name">Academic Coord</span>
-          <span class="ceo-title">Academic Coordinator</span>
+          <span class="ceo-name">${escapeHTML(uName)}</span>
+          <span class="ceo-title">${escapeHTML(uTitle)}</span>
         </div>
       `;
     } else if (roleId === 'ROLE-MENTOR') {
+      const uName = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.name) ? activeAuthSession.name : 'Faculty Mentor';
+      const uTitle = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.designation) ? activeAuthSession.designation : 'Faculty Mentor / Trainer';
       ceoBadge.innerHTML = `
         <div style="width:36px; height:36px; border-radius:50%; background:#1e3a8a; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">
           FM
         </div>
         <div class="ceo-info">
-          <span class="ceo-name">Faculty Mentor</span>
-          <span class="ceo-title">Faculty Mentor / Trainer</span>
+          <span class="ceo-name">${escapeHTML(uName)}</span>
+          <span class="ceo-title">${escapeHTML(uTitle)}</span>
         </div>
       `;
     } else if (roleId === 'ROLE-MARKETING') {
+      const uName = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.name) ? activeAuthSession.name : mktHead.name;
+      const uTitle = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.designation) ? activeAuthSession.designation : mktHead.role;
       ceoBadge.innerHTML = `
         <div style="width:36px; height:36px; border-radius:50%; background:#2b5115; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">
           AK
         </div>
         <div class="ceo-info">
-          <span class="ceo-name">${escapeHTML(mktHead.name)}</span>
-          <span class="ceo-title">${escapeHTML(mktHead.role)}</span>
+          <span class="ceo-name">${escapeHTML(uName)}</span>
+          <span class="ceo-title">${escapeHTML(uTitle)}</span>
         </div>
       `;
     } else {
-      const initials = (counselor.name || 'TC').split(' ').map(n=>n[0]).join('').slice(0, 2);
+      const uName = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.name) ? activeAuthSession.name : counselor.name;
+      const uTitle = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.designation) ? activeAuthSession.designation : counselor.role;
+      const initials = (uName || 'TC').split(' ').map(n=>n[0]).join('').slice(0, 2);
       ceoBadge.innerHTML = `
         <div style="width:36px; height:36px; border-radius:50%; background:#6b8e4e; color:#ffffff; display:flex; align-items:center; justify-content:center; font-weight:bold; font-size:14px;">
           ${escapeHTML(initials)}
         </div>
         <div class="ceo-info">
-          <span class="ceo-name">${escapeHTML(counselor.name)}</span>
-          <span class="ceo-title">${escapeHTML(counselor.role)}</span>
+          <span class="ceo-name">${escapeHTML(uName)}</span>
+          <span class="ceo-title">${escapeHTML(uTitle)}</span>
         </div>
       `;
     }
   }
 
+  const activeEmpName = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.name) ? activeAuthSession.name : counselor.name;
+  const activeEmpRole = (typeof activeAuthSession !== 'undefined' && activeAuthSession?.designation) ? activeAuthSession.designation : counselor.role;
   const bannerName = document.getElementById('tc-banner-counselor-name');
   const bannerRole = document.getElementById('tc-banner-counselor-role');
-  if (bannerName) bannerName.textContent = counselor.name;
-  if (bannerRole) bannerRole.textContent = counselor.role;
+  if (bannerName) bannerName.textContent = activeEmpName;
+  if (bannerRole) bannerRole.textContent = activeEmpRole;
 
   filterSidebarForRole(roleId);
 
@@ -8604,81 +8841,9 @@ function switchRole(roleId, counselorId) {
 }
 
 function filterSidebarForRole(roleId) {
-  const allNavItems = document.querySelectorAll('.nav-item');
-  if (roleId === 'ROLE-ADMIN') {
-    allNavItems.forEach(item => {
-      item.style.display = 'flex';
-    });
-  } else if (roleId === 'ROLE-COORD') {
-    const coordRole = (ERP_DATA.hrm?.roles || []).find(r => r.id === 'ROLE-COORD');
-    const permittedModuleIds = (coordRole?.modules || [])
-      .filter(m => m.view)
-      .map(m => m.id);
-
-    allNavItems.forEach(item => {
-      const view = item.getAttribute('data-view');
-      if (view === 'hrm' || view === 'class-management' || view === 'telecaller' || permittedModuleIds.includes(view)) {
-        item.style.display = 'flex';
-      } else {
-        item.style.display = 'none';
-      }
-    });
-  } else if (roleId === 'ROLE-MENTOR') {
-    allNavItems.forEach(item => {
-      const view = item.getAttribute('data-view');
-      if (view === 'hrm' || view === 'class-management') {
-        item.style.display = 'flex';
-      } else {
-        item.style.display = 'none';
-      }
-    });
-  } else if (roleId === 'ROLE-MARKETING') {
-    const mktRole = (ERP_DATA.hrm?.roles || []).find(r => r.id === 'ROLE-MARKETING');
-    const permittedModuleIds = (mktRole?.modules || [])
-      .filter(m => m.view)
-      .map(m => m.id);
-
-    allNavItems.forEach(item => {
-      const view = item.getAttribute('data-view');
-      if (view === 'marketing' || view === 'crm' || view === 'catalogue' || view === 'data-pool') {
-        item.style.display = 'flex';
-      } else if (permittedModuleIds.includes(view)) {
-        item.style.display = 'flex';
-      } else {
-        item.style.display = 'none';
-      }
-    });
-  } else if (roleId === 'ROLE-TC' || roleId.startsWith('ROLE-TC')) {
-    const tcRole = (ERP_DATA.hrm?.roles || []).find(r => r.id === 'ROLE-TC');
-    const permittedModuleIds = (tcRole?.modules || [])
-      .filter(m => m.view)
-      .map(m => m.id);
-
-    allNavItems.forEach(item => {
-      const view = item.getAttribute('data-view');
-      if (view === 'telecaller' || view === 'crm' || view === 'catalogue' || view === 'data-pool') {
-        item.style.display = 'flex';
-      } else if (permittedModuleIds.includes(view)) {
-        item.style.display = 'flex';
-      } else {
-        item.style.display = 'none';
-      }
-    });
-  }
-
-  // Update section title visibility so no empty category titles remain
-  const sectionTitles = document.querySelectorAll('.nav-section-title');
-  sectionTitles.forEach(sec => {
-    const nextMenu = sec.nextElementSibling;
-    if (nextMenu && nextMenu.classList.contains('nav-menu')) {
-      const visibleItems = nextMenu.querySelectorAll('.nav-item');
-      let hasVisible = false;
-      visibleItems.forEach(vi => {
-        if (vi.style.display !== 'none') hasVisible = true;
-      });
-      sec.style.display = hasVisible ? 'block' : 'none';
-    }
-  });
+  const session = (typeof activeAuthSession !== 'undefined' && activeAuthSession) ? activeAuthSession : (roleId ? { roleId: roleId } : null);
+  updateSidebarNavigationForUser(session);
+  filterHrmTabsForUser(session);
 }
 
 function populateTelecallerDashboard() {
@@ -14615,37 +14780,19 @@ function handleAuthLoginSubmit(e) {
 
   showToastNotification(`Welcome back, ${user.name}! Authenticated as ${session.designation}.`);
 
-  if (user.roleId === 'ROLE-ADMIN' || (user.permissions && user.permissions.includes('ceo-dashboard'))) {
-    switchRole('ROLE-ADMIN', null);
-    switchView('ceo-dashboard');
-  } else if (user.roleId === 'ROLE-COORD' || (user.permissions && user.permissions.includes('academic-coordinator'))) {
-    switchRole('ROLE-COORD', null);
-    switchView('hrm');
-    if (typeof switchHrmTab === 'function') switchHrmTab('academic-coordinator');
-  } else if (user.roleId === 'ROLE-MENTOR' || (user.permissions && user.permissions.includes('mentor-dashboard'))) {
-    switchRole('ROLE-MENTOR', null);
-    switchView('hrm');
-    if (typeof switchHrmTab === 'function') switchHrmTab('mentor-dashboard');
-  } else if (user.roleId === 'ROLE-TC' || (user.permissions && user.permissions.includes('telecaller'))) {
-    switchRole('ROLE-TC', null);
-    switchView('telecaller');
-  } else if (user.permissions && user.permissions.includes('hrm')) {
-    switchView('hrm');
-  } else if (user.permissions && user.permissions.includes('crm')) {
-    switchView('crm');
-  } else if (user.permissions && user.permissions.includes('finance')) {
-    switchView('finance');
-  } else if (user.permissions && user.permissions.includes('marketing')) {
-    switchView('marketing');
-  } else {
-    switchView('dashboard');
-  }
+  // Navigate strictly to employee's own authorized dashboard
+  const targetView = getDefaultViewForUser(session);
+  switchView(targetView);
 
   return false;
 }
 
 function applyAuthenticatedSession(session, silent) {
   activeAuthSession = session;
+
+  // Enforce RBAC navigation & HRM tab visibility
+  updateSidebarNavigationForUser(session);
+  filterHrmTabsForUser(session);
 
   const headerName = document.getElementById('header-user-name');
   const headerTitle = document.getElementById('header-user-title');
@@ -14669,6 +14816,11 @@ function applyAuthenticatedSession(session, silent) {
     if (dropAvatar) dropAvatar.src = userObj.avatar;
   }
 
+  const roleSwitcher = document.getElementById('header-role-switcher-container');
+  if (roleSwitcher) {
+    roleSwitcher.style.display = isUserAdmin(session) ? 'flex' : 'none';
+  }
+
   if (session.roleId && typeof switchRole === 'function') {
     switchRole(session.roleId, null);
   }
@@ -14681,6 +14833,10 @@ function handleAuthLogout() {
 
   if (ERP_DATA.auth) ERP_DATA.auth.session = null;
   activeAuthSession = null;
+
+  // Restore navigation visibility
+  updateSidebarNavigationForUser(null);
+  filterHrmTabsForUser(null);
 
   const dropdown = document.getElementById('dropdown-user-profile');
   if (dropdown) dropdown.style.display = 'none';

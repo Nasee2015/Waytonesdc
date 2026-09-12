@@ -145,9 +145,9 @@
         </div>
       </div>
 
-      <div class="nav-section-title">Core Management</div>
-      <ul class="nav-menu">
-        <li class="nav-item active" data-view="ceo-dashboard" onclick="switchView('ceo-dashboard')">
+      <div class="nav-section-title" id="sidebar-sec-core-title">Core Management</div>
+      <ul class="nav-menu" id="sidebar-sec-core-menu">
+        <li class="nav-item active" data-view="ceo-dashboard" data-perm="ceo-dashboard" onclick="switchView('ceo-dashboard')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="3" y="3" width="7" height="9" rx="1"/>
             <rect x="14" y="3" width="7" height="5" rx="1"/>
@@ -157,7 +157,7 @@
           <span>CEO Dashboard</span>
           <span class="nav-badge">Executive</span>
         </li>
-        <li class="nav-item" data-view="crm" onclick="switchView('crm')">
+        <li class="nav-item" data-view="crm" data-perm="crm" onclick="switchView('crm')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
             <circle cx="9" cy="7" r="4"/>
@@ -167,7 +167,7 @@
           <span>1. CRM</span>
           <span class="nav-badge" id="nav-badge-crm">0 Leads</span>
         </li>
-        <li class="nav-item" data-view="data-pool" onclick="switchView('data-pool')">
+        <li class="nav-item" data-view="data-pool" data-perm="crm" onclick="switchView('data-pool')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <ellipse cx="12" cy="5" rx="9" ry="3"/>
             <path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"/>
@@ -176,14 +176,14 @@
           <span>Data Pool</span>
           <span class="nav-badge" id="sidebar-pool-badge">0 Leads</span>
         </li>
-        <li class="nav-item" data-view="finance" onclick="switchView('finance')">
+        <li class="nav-item" data-view="finance" data-perm="finance" onclick="switchView('finance')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <text x="6" y="18" font-size="16" font-weight="700" fill="currentColor">₹</text>
           </svg>
           <span>2. Finance</span>
           <span class="nav-badge" id="nav-badge-finance">0% Margin</span>
         </li>
-        <li class="nav-item" data-view="class-management" onclick="switchView('class-management')">
+        <li class="nav-item" data-view="class-management" data-perm="class-management" onclick="switchView('class-management')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 10v6M2 10l10-5 10 5-10 5z"/>
             <path d="M6 12v5c3 3 9 3 12 0v-5"/>
@@ -191,7 +191,7 @@
           <span>3. Class Mgmt</span>
           <span class="nav-badge" id="nav-badge-classes">0 Batches</span>
         </li>
-        <li class="nav-item" data-view="hrm" onclick="switchView('hrm')">
+        <li class="nav-item" data-view="hrm" data-perm="hrm" onclick="switchView('hrm')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <rect x="2" y="7" width="20" height="14" rx="2" ry="2"/>
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
@@ -199,7 +199,7 @@
           <span>4. HRM</span>
           <span class="nav-badge" id="nav-badge-hrm">0 Staff</span>
         </li>
-        <li class="nav-item" data-view="catalogue" onclick="switchView('catalogue')">
+        <li class="nav-item" data-view="catalogue" data-perm="catalogue" onclick="switchView('catalogue')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
             <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
@@ -209,9 +209,31 @@
         </li>
       </ul>
 
-      <div class="nav-section-title">AI Co-Pilot</div>
-      <ul class="nav-menu">
-        <li class="nav-item" data-view="wayboss-ai" onclick="switchView('wayboss-ai')">
+      <div class="nav-section-title" id="sidebar-sec-academics-title">Academic & Mentor Workspaces</div>
+      <ul class="nav-menu" id="sidebar-sec-academics-menu">
+        <li class="nav-item" data-view="academic-coordinator" data-perm="academic-coordinator" onclick="switchView('academic-coordinator')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 14l9-5-9-5-9 5 9 5z"/>
+            <path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/>
+          </svg>
+          <span>Academic Coord</span>
+          <span class="nav-badge" style="background:#edf5e8; color:#2b5115; font-weight:700;">Workspace</span>
+        </li>
+        <li class="nav-item" data-view="mentor-dashboard" data-perm="mentor-dashboard" onclick="switchView('mentor-dashboard')">
+          <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/>
+            <circle cx="9" cy="7" r="4"/>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+          </svg>
+          <span>Mentor Board</span>
+          <span class="nav-badge" style="background:#e0f2fe; color:#0369a1; font-weight:700;">Faculty</span>
+        </li>
+      </ul>
+
+      <div class="nav-section-title" id="sidebar-sec-ai-title">AI Co-Pilot</div>
+      <ul class="nav-menu" id="sidebar-sec-ai-menu">
+        <li class="nav-item" data-view="wayboss-ai" data-perm="wayboss-ai" onclick="switchView('wayboss-ai')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
           </svg>
@@ -220,9 +242,9 @@
         </li>
       </ul>
 
-      <div class="nav-section-title">Counselor Workspace</div>
-      <ul class="nav-menu">
-        <li class="nav-item" data-view="telecaller" onclick="switchView('telecaller')">
+      <div class="nav-section-title" id="sidebar-sec-counselor-title">Counselor Workspace</div>
+      <ul class="nav-menu" id="sidebar-sec-counselor-menu">
+        <li class="nav-item" data-view="telecaller" data-perm="telecaller" onclick="switchView('telecaller')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/>
           </svg>
@@ -234,7 +256,7 @@
 
       <div class="nav-section-title" id="sidebar-marketing-section-title">Growth & Strategy</div>
       <ul class="nav-menu" id="sidebar-marketing-menu">
-        <li class="nav-item" data-view="marketing" onclick="switchView('marketing')">
+        <li class="nav-item" data-view="marketing" data-perm="marketing" onclick="switchView('marketing')">
           <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
             <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
             <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/>
@@ -244,7 +266,7 @@
         </li>
       </ul>
 
-      <div class="sidebar-footer">
+      <div class="sidebar-footer" id="sidebar-footer-ai">
         <div class="ai-pill-badge" onclick="switchView('wayboss-ai')">
           <div class="pulse-dot"></div>
           <div>
@@ -273,7 +295,7 @@
 
         <div class="header-right">
           <!-- Role Switcher: CEO Nasim v <-> Telecaller Sarah Jenkins -->
-          <div class="role-switcher-container" title="Switch between Executive CEO & Role-Based Workspaces">
+          <div class="role-switcher-container" id="header-role-switcher-container" title="Switch between Executive CEO & Role-Based Workspaces">
             <span style="font-size:11px; font-weight:700; color:#547339; text-transform:uppercase; letter-spacing:0.5px;">Role Mode:</span>
             <select id="role-mode-select" class="role-switcher-select" onchange="handleRoleModeChange(this.value)">
               <option value="ROLE-ADMIN" selected>&#128081; CEO (Nasim v)</option>
