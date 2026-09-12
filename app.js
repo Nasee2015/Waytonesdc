@@ -354,15 +354,15 @@ function switchView(viewId) {
   const breadcrumb = document.getElementById('breadcrumb-current');
   const viewTitles = {
     'ceo-dashboard': 'CEO Dashboard',
-    'crm': '1. CRM & Admissions',
+    'crm': 'CRM & Admissions',
     'data-pool': 'Data Pool Master Dashboard',
-    'finance': '2. Finance & Accounts',
-    'class-management': '3. Class Management',
-    'hrm': '4. HRM & Faculty',
-    'catalogue': '5. Product Catalogue',
-    'telecaller': '7. Telecaller Dashboard',
-    'marketing': '8. Marketing Head Dashboard',
-    'wayboss-ai': '6. WayBoss AI Assistant',
+    'finance': 'Finance & Accounts',
+    'class-management': 'Class Management',
+    'hrm': 'HRM & Faculty',
+    'catalogue': 'Course Catalogue',
+    'telecaller': 'Telecaller Dashboard',
+    'marketing': 'Marketing Dashboard',
+    'wayboss-ai': 'WayBoss AI Assistant',
     'academic-coordinator': 'Academic Coordinator Workspace',
     'mentor-dashboard': 'Mentor Dashboard'
   };
@@ -834,7 +834,7 @@ function renderModuleCards() {
               ${iconSVGs[mod.icon] || ''}
             </div>
             <div class="module-header-text">
-              <h3>${index + 1}. ${mod.name}</h3>
+              <h3>${mod.name}</h3>
               <p>${mod.tagline}</p>
             </div>
           </div>
