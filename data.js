@@ -11,14 +11,14 @@ function getDefaultEmployees() {
       name: "Nasim v",
       place: "Kochi, Kerala",
       address: "Kochi, Kerala",
-      mainRole: "CEO / Super Administrator",
-      designation: "CEO",
+      mainRole: "Admin",
+      designation: "Admin",
       department: "Executive Leadership & Admin",
       phone: "+91 98765 00001",
       email: "nasim.v@waytone.edu",
       permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
       username: "Nasim",
-      password: "nasim@2026",
+      password: "Nasim@2015",
       salary: 150000,
       salaryFormatted: "₹1,50,000",
       status: "Active",
@@ -874,11 +874,22 @@ function getInitialCleanSchema() {
         {
           userId: "Nasim",
           name: "Nasim v",
-          designation: "CEO",
+          designation: "Admin",
           roleId: "ROLE-ADMIN",
-          password: "nasim@2026",
+          password: "Nasim@2015",
           avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
           email: "nasim.v@waytone.edu",
+          phone: "+91 98765 00001",
+          lastLogin: null
+        },
+        {
+          userId: "Admin",
+          name: "Nasim v",
+          designation: "Admin",
+          roleId: "ROLE-ADMIN",
+          password: "Nasim@2015",
+          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+          email: "admin@waytone.edu",
           phone: "+91 98765 00001",
           lastLogin: null
         },
@@ -961,6 +972,36 @@ function loadDatabase() {
         ERP_DATA.hrm.kpis.totalEmployees = ERP_DATA.hrm.employees.length;
         ERP_DATA.hrm.kpis.activeEmployees = ERP_DATA.hrm.employees.length;
         ERP_DATA.hrm.kpis.presentToday = ERP_DATA.hrm.employees.length;
+      }
+
+      // Ensure Nasim / Admin credentials sync
+      if (ERP_DATA.auth && Array.isArray(ERP_DATA.auth.users)) {
+        const nasimUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'nasim');
+        if (nasimUser) {
+          nasimUser.password = "Nasim@2015";
+          nasimUser.designation = "Admin";
+        }
+        if (!ERP_DATA.auth.users.some(u => u.userId.toLowerCase() === 'admin')) {
+          ERP_DATA.auth.users.push({
+            userId: "Admin",
+            name: "Nasim v",
+            designation: "Admin",
+            roleId: "ROLE-ADMIN",
+            password: "Nasim@2015",
+            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+            email: "admin@waytone.edu",
+            phone: "+91 98765 00001",
+            lastLogin: null
+          });
+        }
+      }
+      if (ERP_DATA.hrm && Array.isArray(ERP_DATA.hrm.employees)) {
+        const nasimEmp = ERP_DATA.hrm.employees.find(e => e.id === 'WST-EMP-01' || e.username?.toLowerCase() === 'nasim');
+        if (nasimEmp) {
+          nasimEmp.password = "Nasim@2015";
+          nasimEmp.mainRole = "Admin";
+          nasimEmp.designation = "Admin";
+        }
       }
       console.log('✓ Central ERP Database loaded from persistence store.');
     } else {

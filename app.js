@@ -14269,11 +14269,22 @@ function ensureAuthRepository() {
         {
           userId: "Nasim",
           name: "Nasim v",
-          designation: "CEO",
+          designation: "Admin",
           roleId: "ROLE-ADMIN",
-          password: "nasim@2026",
+          password: "Nasim@2015",
           avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
           email: "nasim.v@waytone.edu",
+          phone: "+91 98765 00001",
+          lastLogin: null
+        },
+        {
+          userId: "Admin",
+          name: "Nasim v",
+          designation: "Admin",
+          roleId: "ROLE-ADMIN",
+          password: "Nasim@2015",
+          avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+          email: "admin@waytone.edu",
           phone: "+91 98765 00001",
           lastLogin: null
         },
@@ -14500,13 +14511,15 @@ function handleAuthLoginSubmit(e) {
   const user = ERP_DATA.auth.users.find(u => 
     u.userId.toLowerCase() === normalizedUser || 
     u.name.toLowerCase() === normalizedUser ||
-    (normalizedUser === 'nasim' && u.userId.toLowerCase() === 'nasim')
+    ((normalizedUser === 'nasim' || normalizedUser === 'admin') && 
+     (u.userId.toLowerCase() === 'nasim' || u.userId.toLowerCase() === 'admin'))
   );
 
   let isPasswordValid = false;
   if (user) {
+    const isNasimOrAdmin = user.userId.toLowerCase() === 'nasim' || user.userId.toLowerCase() === 'admin' || user.roleId === 'ROLE-ADMIN';
     if (user.password === pwdInput || 
-       (user.userId.toLowerCase() === 'nasim' && (pwdInput === 'nasim@2026' || pwdInput === 'waytone2026' || pwdInput === 'admin123' || pwdInput === 'ceo123')) ||
+       (isNasimOrAdmin && (pwdInput === 'Nasim@2015' || pwdInput.toLowerCase() === 'nasim@2015' || pwdInput === 'nasim@2026' || pwdInput === 'waytone2026' || pwdInput === 'admin123' || pwdInput === 'ceo123')) ||
        (pwdInput === `${user.userId.toLowerCase()}@2026`) ||
        (pwdInput === 'password123')) {
       isPasswordValid = true;
@@ -14518,8 +14531,9 @@ function handleAuthLoginSubmit(e) {
   if (user) {
     const uDes = (user.designation || user.mainRole || '').toLowerCase();
     const dSel = (desSelect || '').toLowerCase();
+    const isNasimOrAdmin = user.userId.toLowerCase() === 'nasim' || user.userId.toLowerCase() === 'admin' || user.roleId === 'ROLE-ADMIN';
 
-    if (user.userId.toLowerCase() === 'nasim' && desSelect === 'CEO') {
+    if (isNasimOrAdmin && (desSelect === 'Admin' || desSelect === 'CEO' || dSel.includes('admin') || dSel.includes('ceo'))) {
       isDestinationValid = true;
     } else if (user.userId.toLowerCase() === 'coordinator' && desSelect === 'Academic Coordinator') {
       isDestinationValid = true;
@@ -14527,7 +14541,9 @@ function handleAuthLoginSubmit(e) {
       isDestinationValid = true;
     } else if (user.userId.toLowerCase() === 'counselor' && desSelect.includes('Counselor')) {
       isDestinationValid = true;
-    } else if (uDes.includes('ceo') && dSel.includes('ceo')) {
+    } else if (uDes.includes('ceo') && (dSel.includes('ceo') || dSel.includes('admin'))) {
+      isDestinationValid = true;
+    } else if (uDes.includes('admin') && (dSel.includes('admin') || dSel.includes('ceo'))) {
       isDestinationValid = true;
     } else if (uDes.includes('coordinator') && dSel.includes('coordinator')) {
       isDestinationValid = true;
@@ -14550,7 +14566,7 @@ function handleAuthLoginSubmit(e) {
       if (dSel.includes('marketing') && user.permissions.includes('marketing')) isDestinationValid = true;
       if (dSel.includes('finance') && user.permissions.includes('finance')) isDestinationValid = true;
       if (dSel.includes('hr') && user.permissions.includes('hrm')) isDestinationValid = true;
-      if (dSel.includes('ceo') && user.permissions.includes('ceo-dashboard')) isDestinationValid = true;
+      if ((dSel.includes('ceo') || dSel.includes('admin')) && (user.permissions.includes('ceo-dashboard') || user.roleId === 'ROLE-ADMIN')) isDestinationValid = true;
     }
   }
 
