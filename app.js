@@ -13642,6 +13642,7 @@ function syncMentorDashboardData(silent) {
 
 // ==========================================================
 // ==========================================================
+// ==========================================================
 // 12. ENTERPRISE AUTHENTICATION & ACCESS GOVERNANCE
 // ==========================================================
 
@@ -13873,9 +13874,9 @@ function handleAuthLoginSubmit(e) {
   const errAlert = document.getElementById('auth-error-alert');
   const errMsg = document.getElementById('auth-error-msg');
 
-  if (!userInput || !pwdInput) {
+  if (!userInput || !desSelect || !pwdInput) {
     if (errAlert && errMsg) {
-      errMsg.textContent = 'Please enter both User ID and Password.';
+      errMsg.textContent = 'Please enter User ID, select Destination, and enter Password.';
       errAlert.style.display = 'flex';
     }
     return false;
@@ -13898,9 +13899,27 @@ function handleAuthLoginSubmit(e) {
     }
   }
 
-  if (!user || !isPasswordValid) {
+  // Check destination matches user
+  let isDestinationValid = false;
+  if (user) {
+    if (user.userId.toLowerCase() === 'nasim' && desSelect === 'CEO') {
+      isDestinationValid = true;
+    } else if (user.userId.toLowerCase() === 'coordinator' && desSelect === 'Academic Coordinator') {
+      isDestinationValid = true;
+    } else if (user.userId.toLowerCase() === 'mentor' && desSelect === 'Faculty Mentor / Trainer') {
+      isDestinationValid = true;
+    } else if (user.userId.toLowerCase() === 'counselor' && desSelect.includes('Counselor')) {
+      isDestinationValid = true;
+    }
+  }
+
+  if (!user || !isPasswordValid || !isDestinationValid) {
     if (errAlert && errMsg) {
-      errMsg.textContent = 'Invalid credentials. Please verify User ID, Destination, and Password.';
+      if (user && isPasswordValid && !isDestinationValid) {
+        errMsg.textContent = `Invalid destination selected for User ID "${userInput}".`;
+      } else {
+        errMsg.textContent = 'Invalid credentials. Please verify User ID, Destination, and Password.';
+      }
       errAlert.style.display = 'flex';
     }
     const container = document.querySelector('.auth-card-container');

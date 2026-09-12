@@ -49,7 +49,6 @@
         <div class="auth-form-group">
           <label class="auth-label" for="auth-input-userid">
             <span>User ID</span>
-            <span style="font-size:11px; color:#64748b; font-weight:600;">e.g. Nasim</span>
           </label>
           <div class="auth-input-wrapper">
             <span class="auth-input-icon">
@@ -58,7 +57,7 @@
                 <circle cx="12" cy="7" r="4"/>
               </svg>
             </span>
-            <input type="text" id="auth-input-userid" class="auth-input-field" placeholder="Enter User ID (e.g. Nasim)" value="Nasim" required autocomplete="username">
+            <input type="text" id="auth-input-userid" class="auth-input-field" placeholder="Enter User ID" required autocomplete="username">
           </div>
         </div>
 
@@ -66,7 +65,6 @@
         <div class="auth-form-group">
           <label class="auth-label" for="auth-select-designation">
             <span>Destination / Designation</span>
-            <span style="font-size:11px; color:#64748b; font-weight:600;">Enterprise Role</span>
           </label>
           <div class="auth-input-wrapper">
             <span class="auth-input-icon">
@@ -75,8 +73,9 @@
                 <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/>
               </svg>
             </span>
-            <select id="auth-select-designation" class="auth-input-field" style="padding-left:42px;" required onchange="handleAuthDesignationSelectChange(this.value)">
-              <option value="CEO" selected>CEO (Nasim v &mdash; Chief Executive Officer)</option>
+            <select id="auth-select-designation" class="auth-input-field" style="padding-left:42px;" required>
+              <option value="" disabled selected>-- Select Destination / Designation --</option>
+              <option value="CEO">CEO</option>
               <option value="Academic Coordinator">Academic Coordinator</option>
               <option value="Faculty Mentor / Trainer">Faculty Mentor / Trainer</option>
               <option value="Admissions Counselor / Telecaller">Admissions Counselor / Telecaller</option>
@@ -90,7 +89,6 @@
         <div class="auth-form-group">
           <label class="auth-label" for="auth-input-password">
             <span>Password</span>
-            <span style="font-size:11px; color:#64748b; font-weight:600;">Default: nasim@2026</span>
           </label>
           <div class="auth-input-wrapper">
             <span class="auth-input-icon">
@@ -99,31 +97,12 @@
                 <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
               </svg>
             </span>
-            <input type="password" id="auth-input-password" class="auth-input-field" placeholder="Enter password" value="nasim@2026" required autocomplete="current-password">
+            <input type="password" id="auth-input-password" class="auth-input-field" placeholder="Enter password" required autocomplete="current-password">
             <button type="button" class="auth-pwd-toggle-btn" onclick="toggleAuthPasswordVisibility()" title="Show/Hide Password">
               <svg id="auth-pwd-eye-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
                 <circle cx="12" cy="12" r="3"/>
               </svg>
-            </button>
-          </div>
-        </div>
-
-        <!-- Quick Access Identity Pills -->
-        <div class="auth-quick-pills-wrap">
-          <span class="auth-quick-label">Quick Access Identities:</span>
-          <div class="auth-pills-row">
-            <button type="button" class="auth-pill-btn active" id="auth-pill-nasim" onclick="quickFillAuthCredentials('Nasim', 'CEO', 'nasim@2026')">
-              &#128081; Nasim (CEO)
-            </button>
-            <button type="button" class="auth-pill-btn" id="auth-pill-coord" onclick="quickFillAuthCredentials('coordinator', 'Academic Coordinator', 'coord@2026')">
-              &#127891; Academic Coord
-            </button>
-            <button type="button" class="auth-pill-btn" id="auth-pill-mentor" onclick="quickFillAuthCredentials('mentor', 'Faculty Mentor / Trainer', 'mentor@2026')">
-              &#129489;&#8205;&#127979; Faculty Mentor
-            </button>
-            <button type="button" class="auth-pill-btn" id="auth-pill-counselor" onclick="quickFillAuthCredentials('counselor', 'Admissions Counselor / Telecaller', 'counselor@2026')">
-              &#128222; Counselor
             </button>
           </div>
         </div>
