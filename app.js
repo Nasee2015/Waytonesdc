@@ -5331,7 +5331,7 @@ function submitCreateBatch() {
   const capstone = (document.getElementById('batch-add-capstone')?.value || '').trim() || 'Applied Real-world Capstone Project';
 
   if (!code) {
-    alert("Please enter a Batch Code (e.g. AI-19).");
+    alert("Please enter a Batch Code.");
     return;
   }
 
@@ -7604,14 +7604,14 @@ function openAddCourseModal(courseIdToEdit = null) {
     if (nameInput) nameInput.value = '';
     if (catSelect) catSelect.selectedIndex = 0;
     if (feesInput) feesInput.value = '';
-    if (durInput) durInput.value = '40 Days';
-    if (weeklyInput) weeklyInput.value = 'Weekly 5 Days';
+    if (durInput) durInput.value = '';
+    if (weeklyInput) weeklyInput.value = '';
     if (benefitsInput) benefitsInput.value = '';
     if (offersInput) offersInput.value = '';
 
     if (deleteFormBtn) deleteFormBtn.style.display = 'none';
 
-    addPackageRow({ name: 'Standard Package', studentCount: 'Batch 1 - 5 students', fees: 2000, duration: '40 Days' });
+    addPackageRow();
   }
 
   openModal('modal-add-course');
@@ -7622,9 +7622,9 @@ function addPackageRow(pkgData = null) {
   if (!container) return;
 
   const pkgName = pkgData?.name || '';
-  const pkgStudents = pkgData?.studentCount || 'Batch 1 - 5 students';
+  const pkgStudents = pkgData?.studentCount || '';
   const pkgFees = pkgData?.fees || pkgData?.fee || '';
-  const pkgDuration = pkgData?.duration || '40 Days';
+  const pkgDuration = pkgData?.duration || '';
 
   const box = document.createElement('div');
   box.className = 'package-builder-box';
@@ -7632,19 +7632,19 @@ function addPackageRow(pkgData = null) {
     <div class="package-builder-grid">
       <div>
         <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:2px;">Package Name <span style="color:#e11d48;">*</span></label>
-        <input type="text" class="pkg-input-name" placeholder="e.g. Affordable, Premium" value="${pkgName}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
+        <input type="text" class="pkg-input-name" placeholder="Enter package name" value="${pkgName}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
       </div>
       <div>
         <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:2px;">Student Count <span style="color:#e11d48;">*</span></label>
-        <input type="text" class="pkg-input-students" placeholder="e.g. 5 students" value="${pkgStudents}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
+        <input type="text" class="pkg-input-students" placeholder="Enter student count / batch size" value="${pkgStudents}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
       </div>
       <div>
         <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:2px;">Fees (&#8377;) <span style="color:#e11d48;">*</span></label>
-        <input type="text" class="pkg-input-fees" placeholder="e.g. 2000 or 600 / Monthly" value="${pkgFees}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
+        <input type="text" class="pkg-input-fees" placeholder="Enter package fees" value="${pkgFees}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
       </div>
       <div>
         <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:2px;">Duration <span style="color:#e11d48;">*</span></label>
-        <input type="text" class="pkg-input-duration" placeholder="e.g. 40 Days, Monthly" value="${pkgDuration}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
+        <input type="text" class="pkg-input-duration" placeholder="Enter duration" value="${pkgDuration}" required style="padding:6px 8px; border:1px solid #dbe2d6; border-radius:5px; font-size:12px; width:100%;">
       </div>
       <div style="padding-top:14px; text-align:center;">
         <button type="button" title="Remove Package" onclick="removePackageRow(this)" style="background:#fee2e2; border:1px solid #fca5a5; border-radius:4px; cursor:pointer; color:#b91c1c; font-size:13px; font-weight:700; padding:4px 8px; line-height:1;">

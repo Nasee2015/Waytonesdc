@@ -2123,12 +2123,7 @@
                   <div style="display:flex; align-items:center; gap:6px;">
                     <label style="font-size:12px; font-weight:700; color:#0f1419;">Select Batch:</label>
                     <select class="status-select" id="class-att-batch-select" onchange="renderAttendanceView()">
-                      <option value="ENG-01" selected>ENG-01 — English Foundational (Pkg 1)</option>
-                      <option value="ENG-02">ENG-02 — English Professional (Pkg 2)</option>
-                      <option value="ENG-03">ENG-03 — English Executive (Pkg 3)</option>
-                      <option value="GK-01">GK-01 — GK & Current Affairs</option>
-                      <option value="FZ-01">FZ-01 — Family Zone Life Skills</option>
-                      <option value="MTH-01">MTH-01 — Speed Maths & Aptitude</option>
+                      <option value="">-- No batches scheduled yet --</option>
                     </select>
                   </div>
                   <div style="display:flex; align-items:center; gap:6px;">
@@ -4214,7 +4209,7 @@
 
               <!-- Input bar -->
               <div class="chat-input-bar">
-                <input type="text" class="chat-input-field" id="ai-user-input" placeholder="Ask WayBoss anything (e.g. 'Show our profit margin trajectory' or 'How much fee is pending?')">
+                <input type="text" class="chat-input-field" id="ai-user-input" placeholder="Ask WayBoss anything regarding courses, batches, revenue, admissions, or operations...">
                 <button class="chat-send-btn" onclick="handleSendAiMessage()" title="Submit Query">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                     <line x1="22" y1="2" x2="11" y2="13"/>
@@ -5261,7 +5256,7 @@
             </div>
             <div class="form-field">
               <label>Phone Number</label>
-              <input type="text" id="photo-ext-phone" placeholder="+91 XXXXX XXXXX" value="">
+              <input type="text" id="photo-ext-phone" placeholder="Enter contact phone number" value="">
             </div>
             <div class="form-field">
               <label>Course Package (Optional)</label>
@@ -5329,11 +5324,11 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Name <span style="color:var(--accent-pista-bright);">*</span></label>
-            <input type="text" id="manual-name" placeholder="e.g. Rahul Verma" required autocomplete="off">
+            <input type="text" id="manual-name" placeholder="Enter student full name" required autocomplete="off">
           </div>
           <div class="form-field">
             <label>Phone Number <span style="color:var(--accent-pista-bright);">*</span></label>
-            <input type="tel" id="manual-phone" placeholder="e.g. +91 98765 43210" required autocomplete="off">
+            <input type="tel" id="manual-phone" placeholder="Enter contact phone number" required autocomplete="off">
           </div>
         </div>
 
@@ -5403,7 +5398,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Client / Payer Name <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="income-party" placeholder="e.g. Rahul Verma or Infosys B2B" required>
+            <input type="text" id="income-party" placeholder="Enter payer name or organization" required>
           </div>
           <div class="form-field">
             <label>Revenue Category <span style="color:var(--accent-pista);">*</span></label>
@@ -5420,7 +5415,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Amount (₹) <span style="color:var(--accent-pista);">*</span></label>
-            <input type="number" id="income-amount" placeholder="e.g. 45000" required min="100">
+            <input type="number" id="income-amount" placeholder="Enter amount (₹)" required min="100">
           </div>
           <div class="form-field">
             <label>Payment Mode</label>
@@ -5442,13 +5437,13 @@
           </div>
           <div class="form-field">
             <label>Reference Invoice # (Optional)</label>
-            <input type="text" id="income-ref" placeholder="e.g. INV-2026-105">
+            <input type="text" id="income-ref" placeholder="Enter reference number (optional)">
           </div>
         </div>
 
         <div class="form-field">
           <label>Transaction Notes</label>
-          <input type="text" id="income-notes" placeholder="e.g. Semester 1 Fee Clearance">
+          <input type="text" id="income-notes" placeholder="Enter transaction remarks or notes">
         </div>
       </div>
       <div class="modal-footer">
@@ -5479,7 +5474,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Vendor / Payee <span style="color:#dc2626;">*</span></label>
-            <input type="text" id="expense-party" placeholder="e.g. CoreWeave GPU Labs or Faculty" required>
+            <input type="text" id="expense-party" placeholder="Enter vendor or payee name" required>
           </div>
           <div class="form-field">
             <label>Cost Center Category <span style="color:#dc2626;">*</span></label>
@@ -5496,7 +5491,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Amount (₹) <span style="color:#dc2626;">*</span></label>
-            <input type="number" id="expense-amount" placeholder="e.g. 75000" required min="100">
+            <input type="number" id="expense-amount" placeholder="Enter expense amount (₹)" required min="100">
           </div>
           <div class="form-field">
             <label>Disbursement Mode</label>
@@ -5516,13 +5511,13 @@
           </div>
           <div class="form-field">
             <label>Bill / Voucher # (Optional)</label>
-            <input type="text" id="expense-ref" placeholder="e.g. BILL-CW-882">
+            <input type="text" id="expense-ref" placeholder="Enter bill or voucher number (optional)">
           </div>
         </div>
 
         <div class="form-field">
           <label>Expense Notes / Description</label>
-          <input type="text" id="expense-notes" placeholder="e.g. Monthly cloud compute allocation">
+          <input type="text" id="expense-notes" placeholder="Enter expense description or remarks">
         </div>
       </div>
       <div class="modal-footer">
@@ -5556,7 +5551,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Client / Student Name <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="inv-client-name" placeholder="e.g. Ananya Deshmukh" required>
+            <input type="text" id="inv-client-name" placeholder="Enter client or student name" required>
           </div>
           <div class="form-field">
             <label>Module / Course Package <span style="color:var(--accent-pista);">*</span></label>
@@ -5570,11 +5565,11 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Invoice Number</label>
-            <input type="text" id="inv-number" placeholder="e.g. INV-2026-001" value="">
+            <input type="text" id="inv-number" placeholder="Enter invoice number" value="">
           </div>
           <div class="form-field">
             <label>Amount in Rupees (₹) <span style="color:var(--accent-pista);">*</span></label>
-            <input type="number" id="inv-amount" placeholder="e.g. 45000" value="" required>
+            <input type="number" id="inv-amount" placeholder="Enter total invoice amount (₹)" value="" required>
           </div>
         </div>
 
@@ -5594,7 +5589,7 @@
 
         <div class="form-field">
           <label>Invoice Terms & Notes</label>
-          <input type="text" id="inv-notes" placeholder="e.g. 1st installment due prior to batch commencement">
+          <input type="text" id="inv-notes" placeholder="Enter invoice terms and notes">
         </div>
       </div>
       <div class="modal-footer">
@@ -5634,7 +5629,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Amount Received (₹) <span style="color:var(--accent-pista);">*</span></label>
-            <input type="number" id="record-pay-amount" placeholder="e.g. 38000" required>
+            <input type="number" id="record-pay-amount" placeholder="Enter payment amount (₹)" required>
           </div>
           <div class="form-field">
             <label>Payment Mode <span style="color:var(--accent-pista);">*</span></label>
@@ -5656,13 +5651,13 @@
           </div>
           <div class="form-field">
             <label>Bank Ref / UPI Transaction ID</label>
-            <input type="text" id="record-pay-ref" placeholder="e.g. UPI-9928172648">
+            <input type="text" id="record-pay-ref" placeholder="Enter transaction reference ID">
           </div>
         </div>
 
         <div class="form-field">
           <label>Notes</label>
-          <input type="text" id="record-pay-notes" placeholder="e.g. Full settlement received & verified">
+          <input type="text" id="record-pay-notes" placeholder="Enter payment settlement notes">
         </div>
       </div>
       <div class="modal-footer">
@@ -5697,7 +5692,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label style="font-size:12px; font-weight:600; color:#374151;">Course Name <span style="color:#e11d48;">*</span></label>
-            <input type="text" id="course-form-name" placeholder="e.g. Communicative English, Python AI Bootcamp" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
+            <input type="text" id="course-form-name" placeholder="Enter course name" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
           </div>
           <div class="form-field">
             <label style="font-size:12px; font-weight:600; color:#374151;">Category <span style="color:#e11d48;">*</span></label>
@@ -5714,26 +5709,26 @@
         <div class="form-grid-3" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-top:12px;">
           <div class="form-field">
             <label style="font-size:12px; font-weight:600; color:#374151;">Base / Standard Fees (&#8377;) <span style="color:#e11d48;">*</span></label>
-            <input type="number" id="course-form-fees" placeholder="e.g. 2000" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
+            <input type="number" id="course-form-fees" placeholder="Enter tuition fees (₹)" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
           </div>
           <div class="form-field">
             <label style="font-size:12px; font-weight:600; color:#374151;">Course Duration <span style="color:#e11d48;">*</span></label>
-            <input type="text" id="course-form-duration" placeholder="e.g. 40 Days, 12 Weeks" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
+            <input type="text" id="course-form-duration" placeholder="Enter duration" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
           </div>
           <div class="form-field">
             <label style="font-size:12px; font-weight:600; color:#374151;">Weekly Class Count <span style="color:#e11d48;">*</span></label>
-            <input type="text" id="course-form-weekly-classes" placeholder="e.g. Weekly 3 to 5 Days" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
+            <input type="text" id="course-form-weekly-classes" placeholder="Enter weekly schedule / classes" required style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
           </div>
         </div>
 
         <div class="form-field" style="margin-top:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Benefits of the Course <span style="font-size:11px; color:#6b7280;">(Enter key benefits, separated by commas or newlines)</span></label>
-          <textarea id="course-form-benefits" rows="2" placeholder="e.g. Fear reduction & daily conversational fluency, Neutral accent training, Public speaking confidence" style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:12.5px; width:100%; resize:vertical;"></textarea>
+          <textarea id="course-form-benefits" rows="2" placeholder="Enter course benefits and learning outcomes" style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:12.5px; width:100%; resize:vertical;"></textarea>
         </div>
 
         <div class="form-field" style="margin-top:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Offer Details</label>
-          <input type="text" id="course-form-offers" placeholder="e.g. Inaugural Batch Offer: &#8377;200 OFF on First Month fee + Free Practice Kit" style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
+          <input type="text" id="course-form-offers" placeholder="Enter promotional discounts or certifications (optional)" style="padding:8px 10px; border:1px solid #dbe2d6; border-radius:6px; font-size:13px; width:100%;">
         </div>
 
         <!-- Dynamic Multi-Package Section -->
@@ -5744,7 +5739,7 @@
                 <span>&#128230; Course Packages</span>
                 <span class="badge-pista" style="font-size:10px;">Multiple Packages Supported</span>
               </h4>
-              <p style="font-size:11.5px; color:#6b7280; margin:2px 0 0 0;">Define flexible student tiers (e.g. Affordable, Basic, Standard, Premium)</p>
+              <p style="font-size:11.5px; color:#6b7280; margin:2px 0 0 0;">Define student enrollment tiers, batch sizes, and fee structures</p>
             </div>
             <button type="button" class="btn-secondary" onclick="addPackageRow()" style="padding:6px 12px; font-size:12px; font-weight:700; border-color:#6b8e4e; color:#3d5a27; background:#edf5e8;">
               + Add New Package
@@ -5899,7 +5894,7 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Batch Code / Cohort ID <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="batch-add-code" placeholder="e.g. ENG-04" required>
+            <input type="text" id="batch-add-code" placeholder="Enter batch code" required>
           </div>
           <div class="form-field">
             <label>Program / Course <span style="color:var(--accent-pista);">*</span></label>
@@ -5918,18 +5913,18 @@
           </div>
           <div class="form-field">
             <label>Batch Capacity <span style="color:var(--accent-pista);">*</span></label>
-            <input type="number" id="batch-add-capacity" placeholder="e.g. 30" value="30" required>
+            <input type="number" id="batch-add-capacity" placeholder="Enter seat capacity" value="" required>
           </div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-field">
             <label>Schedule & Timings <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="batch-add-schedule" placeholder="e.g. Mon - Fri (09:00 AM - 01:00 PM)" required>
+            <input type="text" id="batch-add-schedule" placeholder="Enter schedule and timings" required>
           </div>
           <div class="form-field">
             <label>Assigned Room / Lab <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="batch-add-room" placeholder="e.g. Language Lab 1 or Seminar Hall B" required>
+            <input type="text" id="batch-add-room" placeholder="Enter assigned classroom or lab" required>
           </div>
         </div>
 
@@ -5940,7 +5935,7 @@
           </div>
           <div class="form-field">
             <label>Capstone Focus / Specialization</label>
-            <input type="text" id="batch-add-capstone" placeholder="e.g. Extempore Dialogue & Hesitation Clearance">
+            <input type="text" id="batch-add-capstone" placeholder="Enter capstone specialization or project focus (optional)">
           </div>
         </div>
       </div>
@@ -5975,11 +5970,11 @@
         <div class="form-grid-2">
           <div class="form-field">
             <label>Student Full Name <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="enroll-student-name" placeholder="e.g. Fathima Zahra" required>
+            <input type="text" id="enroll-student-name" placeholder="Enter student full name" required>
           </div>
           <div class="form-field">
             <label>Mobile / WhatsApp Number <span style="color:var(--accent-pista);">*</span></label>
-            <input type="tel" id="enroll-student-phone" placeholder="e.g. +91 98471 23456" required>
+            <input type="tel" id="enroll-student-phone" placeholder="Enter contact mobile number" required>
           </div>
         </div>
 
@@ -6005,7 +6000,7 @@
           </div>
           <div class="form-field">
             <label>Agreed Tuition Fee (₹) <span style="color:var(--accent-pista);">*</span></label>
-            <input type="number" id="enroll-student-fee" placeholder="e.g. 45000" required>
+            <input type="number" id="enroll-student-fee" placeholder="Enter agreed tuition fee (₹)" required>
           </div>
         </div>
 
@@ -6026,7 +6021,7 @@
 
         <div class="form-field">
           <label>Enrollment Notes / Prior Qualification</label>
-          <input type="text" id="enroll-student-notes" placeholder="e.g. B.Tech Graduate - CRM Lead Referral">
+          <input type="text" id="enroll-student-notes" placeholder="Enter qualification or admission notes (optional)">
         </div>
       </div>
       <div class="modal-footer">
@@ -6371,7 +6366,7 @@
           </div>
           <div class="form-field">
             <label>Batch Numbers / Code <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="assign-mentor-batch" placeholder="e.g. ENG-AFF-01" value="" required>
+            <input type="text" id="assign-mentor-batch" placeholder="Enter batch code" value="" required>
           </div>
         </div>
 
@@ -6382,18 +6377,18 @@
           </div>
           <div class="form-field">
             <label>Available Slots (Open Seats) <span style="color:var(--accent-pista);">*</span></label>
-            <input type="text" id="assign-mentor-slots" placeholder="e.g. 30 slots open (0/30)" value="" required>
+            <input type="text" id="assign-mentor-slots" placeholder="Enter available open slots" value="" required>
           </div>
         </div>
 
         <div class="form-grid-2">
           <div class="form-field">
             <label>Weekly Schedule</label>
-            <input type="text" id="assign-mentor-schedule" placeholder="e.g. Mon/Wed/Fri • 10:00 AM - 11:30 AM" value="">
+            <input type="text" id="assign-mentor-schedule" placeholder="Enter weekly schedule" value="">
           </div>
           <div class="form-field">
             <label>Assigned Lab / Room</label>
-            <input type="text" id="assign-mentor-room" placeholder="e.g. Lab 1" value="">
+            <input type="text" id="assign-mentor-room" placeholder="Enter assigned classroom or lab" value="">
           </div>
         </div>
       </div>
@@ -6670,13 +6665,13 @@
                 <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
                   Name <span style="color:#dc2626;">*</span>
                 </label>
-                <input type="text" id="add-emp-name" required placeholder="e.g. Rahul Sharma" oninput="previewGeneratedUsername()" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <input type="text" id="add-emp-name" required placeholder="Enter employee full name" oninput="previewGeneratedUsername()" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
               </div>
               <div>
                 <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
                   Place <span style="color:#dc2626;">*</span>
                 </label>
-                <input type="text" id="add-emp-place" required list="kerala-places-list" placeholder="e.g. Kochi, Kerala" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <input type="text" id="add-emp-place" required list="kerala-places-list" placeholder="Enter city / location" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
                 <datalist id="kerala-places-list">
                   <option value="Kochi, Kerala">
                   <option value="Calicut, Kerala">
@@ -6714,7 +6709,7 @@
                 <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:5px;">
                   Phone Number <span style="color:#dc2626;">*</span>
                 </label>
-                <input type="tel" id="add-emp-phone" required placeholder="+91 98450 12345" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <input type="tel" id="add-emp-phone" required placeholder="Enter 10-digit phone number" style="width:100%; padding:9px 12px; font-size:12.5px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
               </div>
             </div>
           </div>
@@ -6815,7 +6810,7 @@
               </div>
               <div>
                 <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Monthly Basic Salary (₹)</label>
-                <input type="number" id="add-emp-salary" value="45000" min="15000" step="1000" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <input type="number" id="add-emp-salary" value="" placeholder="Enter monthly basic salary (₹)" min="15000" step="1000" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
               </div>
               <div>
                 <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Reporting Manager</label>
@@ -6823,7 +6818,7 @@
               </div>
               <div>
                 <label style="font-size:11px; font-weight:600; color:#374151; display:block; margin-bottom:3px;">Allocated Room / Station</label>
-                <input type="text" id="add-emp-room" placeholder="Language Lab / Station 3" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
+                <input type="text" id="add-emp-room" placeholder="Enter workstation or room (optional)" style="width:100%; padding:7px 10px; font-size:12px; border:1px solid #dbe2d6; border-radius:6px; box-sizing:border-box;">
               </div>
             </div>
           </details>
@@ -7027,7 +7022,7 @@
         <!-- Telecaller Call Notes -->
         <div style="margin-top:14px;">
           <label style="font-size:11.5px; font-weight:600; color:#374151;">Call Notes & Observations (AI Scored):</label>
-          <textarea id="tc-dialer-notes" rows="3" class="form-input" style="width:100%; font-size:12px; padding:8px; line-height:1.4;" placeholder="E.g. Wants weekend batch, fee discussed, positive response, callback requested after 4 PM..."></textarea>
+          <textarea id="tc-dialer-notes" rows="3" class="form-input" style="width:100%; font-size:12px; padding:8px; line-height:1.4;" placeholder="Enter call notes, discussed requirements, positive response indicators, or follow-up details..."></textarea>
         </div>
       </div>
       <div class="modal-footer" style="justify-content:space-between;">
@@ -7161,7 +7156,7 @@
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Payment Amount (&#8377;):</label>
-            <input type="number" id="tc-fee-amount" class="form-input" style="width:100%; font-size:13px; font-weight:700; padding:7px 10px;" value="1000">
+            <input type="number" id="tc-fee-amount" class="form-input" style="width:100%; font-size:13px; font-weight:700; padding:7px 10px;" value="" placeholder="Enter fee payment amount (₹)">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Payment Mode:</label>
@@ -7176,7 +7171,7 @@
 
         <div style="margin-top:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Payment Reference / Transaction ID:</label>
-          <input type="text" id="tc-fee-ref" class="form-input" placeholder="E.g. UPI-9281729381 or Counter Receipt" style="width:100%; font-size:12px; padding:7px 10px;">
+          <input type="text" id="tc-fee-ref" class="form-input" placeholder="Enter payment reference number or transaction ID" style="width:100%; font-size:12px; padding:7px 10px;">
         </div>
       </div>
       <div class="modal-footer" style="justify-content:space-between;">
@@ -7234,12 +7229,12 @@
 
         <div style="margin-top:14px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Module Name:</label>
-          <input type="text" id="hrm-add-mod-name" class="form-input" placeholder="E.g. Placement Portal, Library & LMS, Class Management..." style="width:100%; font-size:12.5px; padding:7px 10px;">
+          <input type="text" id="hrm-add-mod-name" class="form-input" placeholder="Enter module title" style="width:100%; font-size:12.5px; padding:7px 10px;">
         </div>
 
         <div style="margin-top:14px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Module Code / Key:</label>
-          <input type="text" id="hrm-add-mod-key" class="form-input" placeholder="E.g. placement-portal, class-management..." style="width:100%; font-size:12px; padding:7px 10px;">
+          <input type="text" id="hrm-add-mod-key" class="form-input" placeholder="Enter module code / key (lowercase, hyphenated)" style="width:100%; font-size:12px; padding:7px 10px;">
         </div>
 
         <div style="margin-top:16px;">
@@ -7311,11 +7306,11 @@
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
               <div>
                 <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Student Name *</label>
-                <input type="text" id="tc-upload-name" class="form-input" required placeholder="e.g. Rahul Sharma" style="width:100%; font-size:12.5px; padding:7px 10px;">
+                <input type="text" id="tc-upload-name" class="form-input" required placeholder="Enter student full name" style="width:100%; font-size:12.5px; padding:7px 10px;">
               </div>
               <div>
                 <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Phone Number *</label>
-                <input type="text" id="tc-upload-phone" class="form-input" required placeholder="+91 98450 12345" style="width:100%; font-size:12.5px; padding:7px 10px;">
+                <input type="text" id="tc-upload-phone" class="form-input" required placeholder="Enter contact phone number" style="width:100%; font-size:12.5px; padding:7px 10px;">
               </div>
             </div>
 
@@ -7346,24 +7341,24 @@
               <div style="display:flex; flex-direction:column; gap:8px;">
                 <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0f1419; cursor:pointer;">
                   <input type="radio" name="tc-upload-dest" value="unassigned" checked style="accent-color:#6b8e4e;">
-                  <span><strong>&#9889; Unassigned (Shared Data Pool)</strong> &mdash; Available for telecallers to grab</span>
+                  <span><strong>⚡ Unassigned (Shared Data Pool)</strong> &mdash; Available for telecallers to grab</span>
                 </label>
                 <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0f1419; cursor:pointer;">
                   <input type="radio" name="tc-upload-dest" value="self" style="accent-color:#6b8e4e;">
-                  <span><strong>&#128100; Assign to Myself (<span id="tc-upload-modal-self-name">Nasim v</span>)</strong> &mdash; Immediately added to my active Call List</span>
+                  <span><strong>👤 Assign to Myself (<span id="tc-upload-modal-self-name">Nasim v</span>)</strong> &mdash; Immediately added to my active Call List</span>
                 </label>
               </div>
             </div>
 
             <div style="margin-bottom:14px;">
               <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Initial Notes / Observations:</label>
-              <textarea id="tc-upload-notes" rows="2" class="form-input" placeholder="e.g. Inquired about timings, course details..." style="width:100%; font-size:12px; padding:8px;"></textarea>
+              <textarea id="tc-upload-notes" rows="2" class="form-input" placeholder="Enter initial lead notes and student inquiries..." style="width:100%; font-size:12px; padding:8px;"></textarea>
             </div>
 
             <div class="modal-footer" style="padding:0; border:none; justify-content:space-between;">
               <button type="button" class="btn-secondary" onclick="closeModal('modal-telecaller-upload-data')">Cancel</button>
               <button type="submit" class="btn-primary-ai">
-                &#10003; Ingest & Save Lead
+                ✓ Ingest & Save Lead
               </button>
             </div>
           </form>
@@ -7376,7 +7371,7 @@
               Paste multiple student leads below (one per line). Format: <br>
               <code style="background:#edf5e8; color:#2b5115; padding:2px 6px; border-radius:4px; font-size:11.5px;">Student Name, Phone Number, Course/Package, Source</code>
             </p>
-            <textarea id="tc-upload-bulk-text" rows="7" class="form-input" placeholder="Student Name, +91 90000 00000, Communicative English, Campus Drive" style="width:100%; font-size:12px; font-family:monospace; padding:10px; line-height:1.5;"></textarea>
+            <textarea id="tc-upload-bulk-text" rows="7" class="form-input" placeholder="Student Name, Phone Number, Course Name, Lead Source" style="width:100%; font-size:12px; font-family:monospace; padding:10px; line-height:1.5;"></textarea>
             
             <div style="margin-top:12px; background:#f9faf7; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px; margin-bottom:14px;">
               <label style="display:flex; align-items:center; gap:8px; font-size:12px; color:#0f1419; cursor:pointer;">
@@ -7415,7 +7410,7 @@
         <input type="hidden" id="mkt-modal-camp-id" value="">
         <div>
           <label style="font-size:12px; font-weight:600; color:#374151;">Campaign Name:</label>
-          <input type="text" id="mkt-modal-camp-name" class="form-input" placeholder="E.g. Full Stack AI - Batch 6 Launch" style="width:100%; font-size:12.5px; padding:7px 10px;">
+          <input type="text" id="mkt-modal-camp-name" class="form-input" placeholder="Enter campaign title" style="width:100%; font-size:12.5px; padding:7px 10px;">
         </div>
 
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -7440,8 +7435,8 @@
 
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
           <div>
-            <label style="font-size:12px; font-weight:600; color:#374151;">Campaign Budget / Spend (&#8377;):</label>
-            <input type="number" id="mkt-modal-camp-spend" class="form-input" placeholder="E.g. 75000" style="width:100%; font-size:12px; padding:7px 10px;">
+            <label style="font-size:12px; font-weight:600; color:#374151;">Campaign Budget / Spend (₹):</label>
+            <input type="number" id="mkt-modal-camp-spend" class="form-input" placeholder="Enter campaign budget (₹)" style="width:100%; font-size:12px; padding:7px 10px;">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Campaign Status:</label>
@@ -7457,11 +7452,11 @@
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Target Leads:</label>
-            <input type="number" id="mkt-modal-camp-target-leads" class="form-input" placeholder="E.g. 1000" style="width:100%; font-size:12px; padding:7px 10px;">
+            <input type="number" id="mkt-modal-camp-target-leads" class="form-input" placeholder="Enter target leads count" style="width:100%; font-size:12px; padding:7px 10px;">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Target Admissions:</label>
-            <input type="number" id="mkt-modal-camp-target-admissions" class="form-input" placeholder="E.g. 45" style="width:100%; font-size:12px; padding:7px 10px;">
+            <input type="number" id="mkt-modal-camp-target-admissions" class="form-input" placeholder="Enter target admissions count" style="width:100%; font-size:12px; padding:7px 10px;">
           </div>
         </div>
 
@@ -7498,7 +7493,7 @@
         <input type="hidden" id="mkt-modal-content-id" value="">
         <div>
           <label style="font-size:12px; font-weight:600; color:#374151;">Task / Creative Title:</label>
-          <input type="text" id="mkt-modal-content-title" class="form-input" placeholder="E.g. Student Success Story Carousel - Placement Drive" style="width:100%; font-size:12.5px; padding:7px 10px;">
+          <input type="text" id="mkt-modal-content-title" class="form-input" placeholder="Enter creative task title" style="width:100%; font-size:12.5px; padding:7px 10px;">
         </div>
 
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -7602,7 +7597,7 @@
 
         <div style="margin-top:14px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Task Objective &amp; Details:</label>
-          <textarea id="mkt-modal-team-desc" rows="3" class="form-input" placeholder="E.g. A/B test Meta ad copy for Full Stack AI, launch weekend retargeting pixel..." style="width:100%; font-size:12px; padding:7px 10px; line-height:1.4;"></textarea>
+          <textarea id="mkt-modal-team-desc" rows="3" class="form-input" placeholder="Enter task objective and execution details..." style="width:100%; font-size:12px; padding:7px 10px; line-height:1.4;"></textarea>
         </div>
 
         <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
@@ -7776,11 +7771,11 @@
         <div style="display:grid; grid-template-columns: 1fr 2fr; gap:12px; margin-bottom:12px;">
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Batch Code:</label>
-            <input type="text" id="coord-newbatch-code" class="form-input" placeholder="e.g. B-AI-03" style="width:100%; font-size:12.5px; padding:7px 10px;">
+            <input type="text" id="coord-newbatch-code" class="form-input" placeholder="Enter batch code" style="width:100%; font-size:12.5px; padding:7px 10px;">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Batch Title:</label>
-            <input type="text" id="coord-newbatch-name" class="form-input" placeholder="e.g. AI &amp; Data Cohort 3" style="width:100%; font-size:12.5px; padding:7px 10px;">
+            <input type="text" id="coord-newbatch-name" class="form-input" placeholder="Enter batch title" style="width:100%; font-size:12.5px; padding:7px 10px;">
           </div>
         </div>
 
@@ -7824,11 +7819,11 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Room / Lab:</label>
-            <input type="text" id="coord-newbatch-room" class="form-input" value="Lab 1" style="width:100%; font-size:12px; padding:7px 10px;">
+            <input type="text" id="coord-newbatch-room" class="form-input" value="" placeholder="Enter assigned classroom or lab" style="width:100%; font-size:12px; padding:7px 10px;">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Total Seat Capacity:</label>
-            <input type="number" id="coord-newbatch-capacity" class="form-input" value="30" min="1" max="100" style="width:100%; font-size:12px; padding:7px 10px;">
+            <input type="number" id="coord-newbatch-capacity" class="form-input" value="" placeholder="Enter seat capacity" min="1" max="100" style="width:100%; font-size:12px; padding:7px 10px;">
           </div>
         </div>
       </div>
@@ -7882,7 +7877,7 @@
 
         <div style="margin-bottom:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Reviewer Name / Student ID:</label>
-          <input type="text" id="coord-review-author" class="form-input" placeholder="e.g. Rohan Das (STU-2026-08)" style="width:100%; font-size:12px; padding:7px 10px;">
+          <input type="text" id="coord-review-author" class="form-input" placeholder="Enter reviewer name or student registration ID" style="width:100%; font-size:12px; padding:7px 10px;">
         </div>
 
         <div>
@@ -7931,22 +7926,22 @@
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Performance Mark (0-100):</label>
-            <input type="number" id="mentor-report-mark" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" max="100" placeholder="e.g. 85">
+            <input type="number" id="mentor-report-mark" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" max="100" placeholder="Enter mark (0-100)">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Progress %:</label>
-            <input type="number" id="mentor-report-progress" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" max="100" placeholder="e.g. 75">
+            <input type="number" id="mentor-report-progress" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" max="100" placeholder="Enter progress (0-100%)">
           </div>
         </div>
 
         <div style="margin-bottom:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Student Strengths:</label>
-          <textarea id="mentor-report-strengths" class="form-input" rows="2" style="width:100%; font-size:12px; padding:7px 10px;" placeholder="e.g. Strong conceptual grasp, active in classroom Q&amp;A, diligent with lab exercises..."></textarea>
+          <textarea id="mentor-report-strengths" class="form-input" rows="2" style="width:100%; font-size:12px; padding:7px 10px;" placeholder="Enter observed student strengths and practical fluencies..."></textarea>
         </div>
 
         <div style="margin-bottom:12px;">
           <label style="font-size:12px; font-weight:600; color:#374151;">Areas to Improve:</label>
-          <textarea id="mentor-report-improve" class="form-input" rows="2" style="width:100%; font-size:12px; padding:7px 10px;" placeholder="e.g. Practical coding speed, viva voice confidence, project documentation..."></textarea>
+          <textarea id="mentor-report-improve" class="form-input" rows="2" style="width:100%; font-size:12px; padding:7px 10px;" placeholder="Enter recommended areas for growth and mentor action points..."></textarea>
         </div>
 
         <div style="margin-bottom:12px;">
@@ -8001,11 +7996,11 @@
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Performance Mark (0-100):</label>
-            <input type="number" id="mentor-eval-mark" class="form-input" style="width:100%; font-size:13px; padding:7px 10px;" min="0" max="100" placeholder="e.g. 88">
+            <input type="number" id="mentor-eval-mark" class="form-input" style="width:100%; font-size:13px; padding:7px 10px;" min="0" max="100" placeholder="Enter mark (0-100)">
           </div>
           <div>
             <label style="font-size:12px; font-weight:600; color:#374151;">Syllabus Progress %:</label>
-            <input type="number" id="mentor-eval-progress" class="form-input" style="width:100%; font-size:13px; padding:7px 10px;" min="0" max="100" placeholder="e.g. 75">
+            <input type="number" id="mentor-eval-progress" class="form-input" style="width:100%; font-size:13px; padding:7px 10px;" min="0" max="100" placeholder="Enter syllabus progress percentage">
           </div>
         </div>
 
