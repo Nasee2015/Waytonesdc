@@ -135,6 +135,9 @@ function initApp() {
       switchHrmTab('employees');
       openAddEmployeeModal();
     }
+    if (urlParams.has('openSupabase') || urlParams.get('openModal') === 'supabase') {
+      openSupabaseModal();
+    }
   } catch (e) {
     console.warn('URL params parsing bypassed:', e);
   }
@@ -1570,12 +1573,18 @@ function showToastNotification(message) {
 // ==========================================================
 function openModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.add('active');
+  if (modal) {
+    modal.classList.add('active');
+    modal.style.display = 'flex';
+  }
 }
 
 function closeModal(modalId) {
   const modal = document.getElementById(modalId);
-  if (modal) modal.classList.remove('active');
+  if (modal) {
+    modal.classList.remove('active');
+    modal.style.display = 'none';
+  }
 }
 
 // Helper: Select Upload Method from Options Modal
@@ -14558,6 +14567,10 @@ function initAuthSystem() {
     showAuthOverlay();
   }
 
+  if (urlParams.get('openModal') === 'supabase') {
+    openSupabaseModal();
+  }
+
   // Close profile dropdown when clicking outside
   document.addEventListener('click', (e) => {
     const dropdown = document.getElementById('dropdown-user-profile');
@@ -14912,3 +14925,335 @@ function submitChangePassword() {
     showToastNotification('Password successfully updated for ' + user.name + '.');
   }
 }
+
+/* ==========================================================
+   CENTRALIZED SUPABASE CLOUD DATABASE UI CONTROLLERS
+   ========================================================== */
+
+function refreshActiveView() {
+  if (typeof renderModuleCards === 'function') renderModuleCards();
+  if (typeof updateHeaderMetrics === 'function') updateHeaderMetrics();
+
+  if (typeof currentView === 'undefined') return;
+
+  if (currentView === 'ceo-dashboard') {
+    if (typeof renderRevenueChart === 'function') renderRevenueChart(currentRevenueTimeframe || 'monthly');
+  } else if (currentView === 'data-pool') {
+    if (typeof renderDataPoolDashboard === 'function') renderDataPoolDashboard(currentDataPoolTimeframe || 'all');
+  } else if (currentView === 'crm') {
+    if (typeof renderCrmLeads === 'function') renderCrmLeads();
+  } else if (currentView === 'finance') {
+    if (typeof populateFinanceView === 'function') populateFinanceView();
+  } else if (currentView === 'class-management') {
+    if (typeof populateClassManagementView === 'function') populateClassManagementView();
+  } else if (currentView === 'hrm') {
+    if (typeof populateHRMView === 'function') populateHRMView();
+  } else if (currentView === 'catalogue') {
+    if (typeof populateCatalogueView === 'function') populateCatalogueView();
+  } else if (currentView === 'telecaller') {
+    if (typeof populateTelecallerDashboard === 'function') populateTelecallerDashboard();
+  } else if (currentView === 'marketing') {
+    if (typeof renderMarketingDashboard === 'function') renderMarketingDashboard();
+  }
+}
+window.refreshActiveView = refreshActiveView;
+
+function openSupabaseModal() {
+  const config = window.WaytoneSupabase ? window.WaytoneSupabase.getStoredConfig() : { url: '', anonKey: '' };
+  const urlInput = document.getElementById('supabase-input-url');
+  const keyInput = document.getElementById('supabase-input-key');
+  const feedback = document.getElementById('supabase-test-feedback');
+
+  if (urlInput) urlInput.value = config.url || '';
+  if (keyInput) keyInput.value = config.anonKey || '';
+  if (feedback) feedback.style.display = 'none';
+
+  updateSupabaseModalStatus();
+  openModal('modal-supabase-config');
+}
+window.openSupabaseModal = openSupabaseModal;
+
+function updateSupabaseModalStatus() {
+  const status = window.WaytoneSupabase ? window.WaytoneSupabase.getStatus() : 'LOCAL_ONLY';
+  const lastSync = window.WaytoneSupabase ? window.WaytoneSupabase.getLastSyncTime() : null;
+  const dot = document.getElementById('modal-db-status-dot');
+  const text = document.getElementById('modal-db-status-text');
+  const syncLabel = document.getElementById('modal-db-last-sync');
+
+  if (dot && text) {
+    dot.className = 'db-sync-dot';
+    if (status === 'CONNECTED') {
+      dot.classList.add('status-connected');
+      text.textContent = 'Connected & Synced with Supabase';
+      text.style.color = '#059669';
+    } else if (status === 'CONNECTING') {
+      dot.classList.add('status-connecting');
+      text.textContent = 'Connecting to Supabase...';
+      text.style.color = '#d97706';
+    } else if (status === 'ERROR') {
+      dot.classList.add('status-error');
+      text.textContent = 'Connection Error / Check Keys';
+      text.style.color = '#dc2626';
+    } else {
+      dot.classList.add('status-local');
+      text.textContent = 'Local Cache Mode (Supabase not configured)';
+      text.style.color = '#64748b';
+    }
+  }
+
+  if (syncLabel) {
+    if (lastSync) {
+      syncLabel.textContent = 'Last synced: ' + new Date(lastSync).toLocaleTimeString();
+    } else {
+      syncLabel.textContent = status === 'CONNECTED' ? 'Live Real-time' : 'Local Only';
+    }
+  }
+}
+
+async function handleTestSupabaseConnectionUI() {
+  const url = document.getElementById('supabase-input-url')?.value.trim();
+  const key = document.getElementById('supabase-input-key')?.value.trim();
+  const feedback = document.getElementById('supabase-test-feedback');
+
+  if (!feedback) return;
+  feedback.style.display = 'block';
+  feedback.style.background = '#fef3c7';
+  feedback.style.border = '1px solid #fde68a';
+  feedback.style.color = '#92400e';
+  feedback.textContent = 'Testing connection to Supabase...';
+
+  if (!url || !key) {
+    feedback.style.background = '#fee2e2';
+    feedback.style.border = '1px solid #fecaca';
+    feedback.style.color = '#991b1b';
+    feedback.textContent = 'Please enter both Supabase Project URL and Anon Key.';
+    return;
+  }
+
+  if (window.WaytoneSupabase) {
+    const res = await window.WaytoneSupabase.testConnection(url, key);
+    if (res.success) {
+      feedback.style.background = '#d1fae5';
+      feedback.style.border = '1px solid #a7f3d0';
+      feedback.style.color = '#065f46';
+      feedback.textContent = '✓ ' + res.message + (res.recordExists ? ' (Active Central Table Found)' : ' (Ready to Seed)');
+    } else {
+      feedback.style.background = '#fee2e2';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.style.color = '#991b1b';
+      feedback.textContent = '✗ ' + res.message;
+    }
+  }
+}
+window.handleTestSupabaseConnectionUI = handleTestSupabaseConnectionUI;
+
+async function handleSaveSupabaseConfigUI() {
+  const url = document.getElementById('supabase-input-url')?.value.trim();
+  const key = document.getElementById('supabase-input-key')?.value.trim();
+  const feedback = document.getElementById('supabase-test-feedback');
+
+  if (!url || !key) {
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.background = '#fee2e2';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.style.color = '#991b1b';
+      feedback.textContent = 'Please enter both Supabase Project URL and Anon Key before saving.';
+    }
+    return;
+  }
+
+  if (window.WaytoneSupabase) {
+    window.WaytoneSupabase.saveStoredConfig(url, key);
+    window.WaytoneSupabase.init(true);
+
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.background = '#d1fae5';
+      feedback.style.border = '1px solid #a7f3d0';
+      feedback.style.color = '#065f46';
+      feedback.textContent = 'Config saved! Initializing live connection & fetching central database...';
+    }
+
+    // Attempt initial pull or push
+    const cloudResult = await window.WaytoneSupabase.fetchCentralDatabase();
+    if (cloudResult && cloudResult.payload && Object.keys(cloudResult.payload).length > 0) {
+      if (typeof window.applyRemoteDatabaseUpdate === 'function') {
+        window.applyRemoteDatabaseUpdate(cloudResult.payload, cloudResult.updatedBy);
+      }
+      showToastNotification('Connected to Supabase! Synchronized corporate database.');
+    } else {
+      // Seed current local data to Supabase
+      await window.WaytoneSupabase.pushCentralDatabase(window.ERP_DATA, activeAuthSession?.name || 'Admin Setup');
+      showToastNotification('Connected to Supabase! Uploaded initial database state.');
+    }
+
+    updateSupabaseModalStatus();
+    setTimeout(() => {
+      closeModal('modal-supabase-config');
+    }, 1200);
+  }
+}
+window.handleSaveSupabaseConfigUI = handleSaveSupabaseConfigUI;
+
+async function handlePushLocalToCloudUI() {
+  const feedback = document.getElementById('supabase-test-feedback');
+  if (!window.WaytoneSupabase) return;
+
+  if (feedback) {
+    feedback.style.display = 'block';
+    feedback.style.background = '#fef3c7';
+    feedback.style.border = '1px solid #fde68a';
+    feedback.style.color = '#92400e';
+    feedback.textContent = 'Pushing local database state to Supabase...';
+  }
+
+  const user = window.activeAuthSession ? window.activeAuthSession.name : 'Admin';
+  const success = await window.WaytoneSupabase.pushCentralDatabase(window.ERP_DATA, user + ' (Manual Push)');
+  if (success) {
+    if (feedback) {
+      feedback.style.background = '#d1fae5';
+      feedback.style.border = '1px solid #a7f3d0';
+      feedback.style.color = '#065f46';
+      feedback.textContent = '✓ Successfully pushed current local database to Supabase Cloud!';
+    }
+    showToastNotification('Local data successfully pushed to Supabase Cloud.');
+    updateSupabaseModalStatus();
+  } else {
+    if (feedback) {
+      feedback.style.background = '#fee2e2';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.style.color = '#991b1b';
+      feedback.textContent = 'Failed to push to Supabase. Check credentials and table status.';
+    }
+  }
+}
+window.handlePushLocalToCloudUI = handlePushLocalToCloudUI;
+
+async function handlePullCloudToLocalUI() {
+  const feedback = document.getElementById('supabase-test-feedback');
+  if (!window.WaytoneSupabase) return;
+
+  if (feedback) {
+    feedback.style.display = 'block';
+    feedback.style.background = '#fef3c7';
+    feedback.style.border = '1px solid #fde68a';
+    feedback.style.color = '#92400e';
+    feedback.textContent = 'Pulling central database from Supabase...';
+  }
+
+  const cloudResult = await window.WaytoneSupabase.fetchCentralDatabase();
+  if (cloudResult && cloudResult.payload) {
+    if (typeof window.applyRemoteDatabaseUpdate === 'function') {
+      window.applyRemoteDatabaseUpdate(cloudResult.payload, cloudResult.updatedBy);
+    }
+    if (feedback) {
+      feedback.style.background = '#d1fae5';
+      feedback.style.border = '1px solid #a7f3d0';
+      feedback.style.color = '#065f46';
+      feedback.textContent = '✓ Successfully pulled latest data from Supabase Cloud!';
+    }
+    showToastNotification('Pulled latest database from Supabase.');
+    updateSupabaseModalStatus();
+  } else {
+    if (feedback) {
+      feedback.style.background = '#fee2e2';
+      feedback.style.border = '1px solid #fecaca';
+      feedback.style.color = '#991b1b';
+      feedback.textContent = 'Could not pull data from Supabase Cloud or table is empty.';
+    }
+  }
+}
+window.handlePullCloudToLocalUI = handlePullCloudToLocalUI;
+
+function handleDisconnectSupabaseUI() {
+  if (window.WaytoneSupabase) {
+    window.WaytoneSupabase.clearStoredConfig();
+    window.WaytoneSupabase.init(true);
+    const feedback = document.getElementById('supabase-test-feedback');
+    if (feedback) {
+      feedback.style.display = 'block';
+      feedback.style.background = '#f1f5f9';
+      feedback.style.border = '1px solid #e2e8f0';
+      feedback.style.color = '#475569';
+      feedback.textContent = 'Disconnected from Supabase. Reverted to Local Cache mode.';
+    }
+    const urlInput = document.getElementById('supabase-input-url');
+    const keyInput = document.getElementById('supabase-input-key');
+    if (urlInput) urlInput.value = '';
+    if (keyInput) keyInput.value = '';
+    updateSupabaseModalStatus();
+    showToastNotification('Reverted to local database cache.');
+  }
+}
+window.handleDisconnectSupabaseUI = handleDisconnectSupabaseUI;
+
+function toggleSupabaseKeyVisibility() {
+  const keyInput = document.getElementById('supabase-input-key');
+  if (!keyInput) return;
+  keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+}
+window.toggleSupabaseKeyVisibility = toggleSupabaseKeyVisibility;
+
+function copySupabaseSQLSetup() {
+  const code = document.getElementById('supabase-sql-code-snippet')?.innerText || '';
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(code).then(() => {
+      showToastNotification('1-Click Supabase SQL script copied to clipboard!');
+    }).catch(() => {
+      showToastNotification('SQL snippet selected. Press Ctrl+C to copy.');
+    });
+  } else {
+    showToastNotification('SQL snippet ready to copy.');
+  }
+}
+window.copySupabaseSQLSetup = copySupabaseSQLSetup;
+
+// Global listener for Supabase status changes to update header and login indicators
+window.addEventListener('waytone:db-status-change', (e) => {
+  const detail = e.detail || {};
+  const status = detail.status || 'LOCAL_ONLY';
+
+  // Update Header Button
+  const headerDot = document.getElementById('db-sync-dot');
+  const headerLabel = document.getElementById('db-sync-label');
+  if (headerDot && headerLabel) {
+    headerDot.className = 'db-sync-dot';
+    if (status === 'CONNECTED') {
+      headerDot.classList.add('status-connected');
+      headerLabel.textContent = 'Cloud Synced';
+    } else if (status === 'CONNECTING') {
+      headerDot.classList.add('status-connecting');
+      headerLabel.textContent = 'Connecting...';
+    } else if (status === 'ERROR') {
+      headerDot.classList.add('status-error');
+      headerLabel.textContent = 'DB Error';
+    } else {
+      headerDot.classList.add('status-local');
+      headerLabel.textContent = 'Local Cache';
+    }
+  }
+
+  // Update Auth Overlay Indicator
+  const authDot = document.getElementById('auth-db-sync-dot');
+  const authText = document.getElementById('auth-db-sync-text');
+  if (authDot && authText) {
+    authDot.className = 'db-sync-dot';
+    if (status === 'CONNECTED') {
+      authDot.classList.add('status-connected');
+      authText.textContent = 'Centralized Cloud DB';
+    } else if (status === 'CONNECTING') {
+      authDot.classList.add('status-connecting');
+      authText.textContent = 'Connecting Cloud DB...';
+    } else if (status === 'ERROR') {
+      authDot.classList.add('status-error');
+      authText.textContent = 'Cloud DB Error';
+    } else {
+      authDot.classList.add('status-local');
+      authText.textContent = 'Cloud DB Settings';
+    }
+  }
+
+  // Update Modal if open
+  updateSupabaseModalStatus();
+});

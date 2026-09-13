@@ -127,6 +127,13 @@
         </svg>
         <span>Press <kbd style="background:#eef2ed; border:1px solid #d4dcd0; border-radius:4px; padding:1px 5px; font-size:10px;">Enter</kbd> to sign in or <kbd style="background:#eef2ed; border:1px solid #d4dcd0; border-radius:4px; padding:1px 5px; font-size:10px;">Ctrl + L</kbd> to lock session</span>
       </div>
+
+      <div style="margin-top:12px; text-align:center;">
+        <button type="button" onclick="openSupabaseModal()" style="background:none; border:none; font-size:11.5px; color:#64748b; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+          <span class="db-sync-dot status-local" id="auth-db-sync-dot" style="width:7px; height:7px;"></span>
+          <span id="auth-db-sync-text">Cloud Database Connection</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -308,6 +315,12 @@
             <input type="text" class="search-input" id="global-search" placeholder="Search inquiries, batches, fees..." oninput="handleGlobalSearch(this.value)">
             <span class="kbd-badge">Ctrl K</span>
           </div>
+
+          <!-- Centralized Cloud Database (Supabase) Connection Status -->
+          <button class="db-sync-btn" id="db-sync-status-btn" onclick="openSupabaseModal()" title="Centralized Supabase Cloud Database Status & Configuration">
+            <span class="db-sync-dot status-local" id="db-sync-dot"></span>
+            <span class="db-sync-label" id="db-sync-label">Local Cache</span>
+          </button>
 
           <!-- Theme Toggle -->
           <button class="btn-reset-db" onclick="confirmResetDatabase()" title="Clear all data and reset to pure empty state">Reset DB</button>
@@ -7637,6 +7650,8 @@
         </div>
       </div>
     </div>
+  </div>
+
   <!-- ======================================================== -->
   <!-- MARKETING HEAD DASHBOARD MODALS                          -->
   <!-- ======================================================== -->
@@ -8340,6 +8355,117 @@
     </div>
   </div>
 
+  <!-- ==========================================================
+       MODAL: CENTRALIZED SUPABASE CLOUD DATABASE CONFIGURATION
+       ========================================================== -->
+  <div id="modal-supabase-config" class="modal-overlay">
+    <div class="modal-container" style="max-width:560px;">
+      <div class="modal-header" style="align-items:flex-start;">
+        <div>
+          <span class="badge-pista" style="font-size:10px; font-weight:700;">ENTERPRISE CLOUD SYNC</span>
+          <h3 style="margin:4px 0 0 0; font-size:17px; color:var(--text-primary);">Centralized Database (Supabase)</h3>
+          <p style="margin:4px 0 0 0; font-size:12px; color:var(--text-secondary);">
+            Synchronize all employee logins, leads, attendance, finances, and courses across all devices in real time.
+          </p>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('modal-supabase-config')">&#10005;</button>
+      </div>
+
+      <div class="modal-body" style="padding:18px 22px; max-height:75vh; overflow-y:auto;">
+        <!-- Live Connection Status Strip -->
+        <div style="background:#f8fafc; border:1px solid var(--border-subtle); border-radius:8px; padding:10px 14px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="db-sync-dot status-local" id="modal-db-status-dot"></span>
+            <span style="font-size:12.5px; font-weight:600; color:var(--text-primary);" id="modal-db-status-text">Local Cache Mode (Not Connected)</span>
+          </div>
+          <span style="font-size:11px; color:var(--text-muted);" id="modal-db-last-sync">--</span>
+        </div>
+
+        <!-- Connection Test Feedback Box -->
+        <div id="supabase-test-feedback" style="display:none; padding:10px 14px; border-radius:8px; font-size:12.5px; margin-bottom:14px;"></div>
+
+        <!-- Supabase Project URL -->
+        <div style="margin-bottom:14px;">
+          <label style="display:block; font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">
+            Supabase Project URL:
+          </label>
+          <input type="url" id="supabase-input-url" class="form-input" style="width:100%; font-size:13px;" placeholder="https://xyzcompany.supabase.co" autocomplete="off" />
+          <span style="font-size:11px; color:var(--text-muted);">From Supabase Dashboard &rarr; Project Settings &rarr; API</span>
+        </div>
+
+        <!-- Supabase Anon Public Key -->
+        <div style="margin-bottom:16px;">
+          <label style="display:block; font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:4px;">
+            Supabase Anon Public API Key:
+          </label>
+          <div style="position:relative;">
+            <input type="password" id="supabase-input-key" class="form-input" style="width:100%; font-size:13px; padding-right:50px;" placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off" />
+            <button type="button" onclick="toggleSupabaseKeyVisibility()" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:11px; font-weight:600;">Show</button>
+          </div>
+          <span style="font-size:11px; color:var(--text-muted);">Public 'anon' key (safe for browser client requests)</span>
+        </div>
+
+        <!-- Connection & Cloud Actions -->
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-bottom:18px;">
+          <button type="button" class="btn-secondary" style="font-size:12px; padding:7px 14px;" onclick="handleTestSupabaseConnectionUI()">
+            Test Connection
+          </button>
+          <button type="button" class="btn-primary-ai" style="font-size:12px; padding:7px 14px;" onclick="handleSaveSupabaseConfigUI()">
+            Save &amp; Connect Live
+          </button>
+          <button type="button" class="btn-secondary" style="font-size:12px; padding:7px 14px;" onclick="handlePushLocalToCloudUI()" title="Push current local ERP database to Supabase cloud">
+            &uarr; Push Local Data to Cloud
+          </button>
+          <button type="button" class="btn-secondary" style="font-size:12px; padding:7px 14px;" onclick="handlePullCloudToLocalUI()" title="Pull latest central records from Supabase">
+            &darr; Pull Cloud Data
+          </button>
+          <button type="button" class="btn-secondary" style="font-size:12px; padding:7px 14px; color:#dc2626;" onclick="handleDisconnectSupabaseUI()">
+            Disconnect
+          </button>
+        </div>
+
+        <!-- 1-Click SQL Setup Script Guide -->
+        <div style="border-top:1px solid var(--border-subtle); padding-top:14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+            <span style="font-size:12px; font-weight:700; color:var(--text-primary);">Supabase Database Table Setup (1-Click SQL)</span>
+            <button type="button" class="btn-secondary" style="font-size:11px; padding:3px 8px;" onclick="copySupabaseSQLSetup()">Copy SQL</button>
+          </div>
+          <p style="font-size:11.5px; color:var(--text-secondary); margin:0 0 8px 0;">
+            Run this in your <a href="https://supabase.com/dashboard" target="_blank" style="color:var(--accent-pista); font-weight:600;">Supabase Dashboard &rarr; SQL Editor</a> to initialize the centralized table and enable real-time replication:
+          </p>
+          <pre class="code-box-pre" id="supabase-sql-code-snippet"><code>-- 1. Create centralized table for Waytone ERP
+CREATE TABLE IF NOT EXISTS waytone_erp_state (
+  id TEXT PRIMARY KEY DEFAULT 'central_database',
+  data JSONB NOT NULL,
+  updated_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()) NOT NULL,
+  updated_by TEXT DEFAULT 'System'
+);
+
+-- 2. Seed initial empty record
+INSERT INTO waytone_erp_state (id, data, updated_by)
+VALUES ('central_database', '{}'::jsonb, 'Initial Setup')
+ON CONFLICT (id) DO NOTHING;
+
+-- 3. Enable Row Level Security (RLS) &amp; permit anon access
+ALTER TABLE waytone_erp_state ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow read-write for ERP anon client"
+ON waytone_erp_state FOR ALL
+TO anon, authenticated
+USING (true) WITH CHECK (true);
+
+-- 4. Enable Supabase Realtime broadcast
+ALTER PUBLICATION supabase_realtime ADD TABLE waytone_erp_state;</code></pre>
+        </div>
+      </div>
+
+      <div class="modal-footer" style="display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-size:11px; color:var(--text-muted);">Offline cache is preserved automatically</span>
+        <button class="btn-secondary" onclick="closeModal('modal-supabase-config')">Close</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Debug Error Logger -->
   <div id="__debug_errors" style="display:none;"></div>
   <script>
@@ -8350,7 +8476,10 @@
       console.error('TRAPPED_ERROR:', m, l, c, e);
     };
   </script>
-  <!-- Scripts -->
+  <!-- Supabase Official JS Client & Sync Engine -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="supabase-client.js"></script>
+  <!-- Core Data & Application Scripts -->
   <script src="data.js"></script>
   <script src="app.js"></script>
 </body>

@@ -948,81 +948,87 @@ function getInitialCleanSchema() {
 let ERP_DATA = getInitialCleanSchema();
 
 // Persistence Methods
+function sanitizeAndEnforcePermissions(data) {
+  if (!data) return;
+  if (!data.hrm) data.hrm = {};
+  if (!data.hrm.employees || data.hrm.employees.length === 0) {
+    data.hrm.employees = getDefaultEmployees();
+  }
+  if (!data.hrm.kpis) data.hrm.kpis = {};
+  if (!data.hrm.kpis.totalEmployees || data.hrm.kpis.totalEmployees < data.hrm.employees.length) {
+    data.hrm.kpis.totalEmployees = data.hrm.employees.length;
+    data.hrm.kpis.activeEmployees = data.hrm.employees.length;
+    data.hrm.kpis.presentToday = data.hrm.employees.length;
+  }
+
+  // Ensure Nasim / Admin credentials sync
+  if (data.auth && Array.isArray(data.auth.users)) {
+    const nasimUser = data.auth.users.find(u => u.userId.toLowerCase() === 'nasim');
+    if (nasimUser) {
+      nasimUser.password = "Nasim@2015";
+      nasimUser.designation = "Admin";
+      nasimUser.permissions = ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"];
+    }
+    const coordUser = data.auth.users.find(u => u.userId.toLowerCase() === 'coordinator');
+    if (coordUser && (!coordUser.permissions || coordUser.permissions.length === 0)) {
+      coordUser.permissions = ["academic-coordinator", "class-management", "catalogue", "hrm"];
+    }
+    const mentorUser = data.auth.users.find(u => u.userId.toLowerCase() === 'mentor');
+    if (mentorUser && (!mentorUser.permissions || mentorUser.permissions.length === 0)) {
+      mentorUser.permissions = ["mentor-dashboard", "class-management", "catalogue"];
+    }
+    const counselorUser = data.auth.users.find(u => u.userId.toLowerCase() === 'counselor');
+    if (counselorUser && (!counselorUser.permissions || counselorUser.permissions.length === 0)) {
+      counselorUser.permissions = ["telecaller", "crm", "catalogue"];
+    }
+    if (!data.auth.users.some(u => u.userId.toLowerCase() === 'admin')) {
+      data.auth.users.push({
+        userId: "Admin",
+        name: "Nasim v",
+        designation: "Admin",
+        roleId: "ROLE-ADMIN",
+        password: "Nasim@2015",
+        permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
+        avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+        email: "admin@waytone.edu",
+        phone: "+91 98765 00001",
+        lastLogin: null
+      });
+    }
+  }
+  if (data.hrm && Array.isArray(data.hrm.employees)) {
+    const nasimEmp = data.hrm.employees.find(e => e.id === 'WST-EMP-01' || e.username?.toLowerCase() === 'nasim');
+    if (nasimEmp) {
+      nasimEmp.password = "Nasim@2015";
+      nasimEmp.mainRole = "Admin";
+      nasimEmp.designation = "Admin";
+    }
+  }
+}
+
+function deepMergeData(target, source) {
+  for (const key of Object.keys(source || {})) {
+    if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
+      if (!target[key] || typeof target[key] !== 'object' || Array.isArray(target[key])) {
+        target[key] = {};
+      }
+      deepMergeData(target[key], source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
 function loadDatabase() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const parsed = JSON.parse(raw);
       const schema = getInitialCleanSchema();
-      function deepMerge(target, source) {
-        for (const key of Object.keys(source || {})) {
-          if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])) {
-            if (!target[key] || typeof target[key] !== 'object' || Array.isArray(target[key])) {
-              target[key] = {};
-            }
-            deepMerge(target[key], source[key]);
-          } else {
-            target[key] = source[key];
-          }
-        }
-        return target;
-      }
-      ERP_DATA = deepMerge(schema, parsed);
-      if (!ERP_DATA.hrm) ERP_DATA.hrm = {};
-      if (!ERP_DATA.hrm.employees || ERP_DATA.hrm.employees.length === 0) {
-        ERP_DATA.hrm.employees = getDefaultEmployees();
-      }
-      if (!ERP_DATA.hrm.kpis) ERP_DATA.hrm.kpis = {};
-      if (!ERP_DATA.hrm.kpis.totalEmployees || ERP_DATA.hrm.kpis.totalEmployees < ERP_DATA.hrm.employees.length) {
-        ERP_DATA.hrm.kpis.totalEmployees = ERP_DATA.hrm.employees.length;
-        ERP_DATA.hrm.kpis.activeEmployees = ERP_DATA.hrm.employees.length;
-        ERP_DATA.hrm.kpis.presentToday = ERP_DATA.hrm.employees.length;
-      }
-
-      // Ensure Nasim / Admin credentials sync
-      if (ERP_DATA.auth && Array.isArray(ERP_DATA.auth.users)) {
-        const nasimUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'nasim');
-        if (nasimUser) {
-          nasimUser.password = "Nasim@2015";
-          nasimUser.designation = "Admin";
-          nasimUser.permissions = ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"];
-        }
-        const coordUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'coordinator');
-        if (coordUser && (!coordUser.permissions || coordUser.permissions.length === 0)) {
-          coordUser.permissions = ["academic-coordinator", "class-management", "catalogue", "hrm"];
-        }
-        const mentorUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'mentor');
-        if (mentorUser && (!mentorUser.permissions || mentorUser.permissions.length === 0)) {
-          mentorUser.permissions = ["mentor-dashboard", "class-management", "catalogue"];
-        }
-        const counselorUser = ERP_DATA.auth.users.find(u => u.userId.toLowerCase() === 'counselor');
-        if (counselorUser && (!counselorUser.permissions || counselorUser.permissions.length === 0)) {
-          counselorUser.permissions = ["telecaller", "crm", "catalogue"];
-        }
-        if (!ERP_DATA.auth.users.some(u => u.userId.toLowerCase() === 'admin')) {
-          ERP_DATA.auth.users.push({
-            userId: "Admin",
-            name: "Nasim v",
-            designation: "Admin",
-            roleId: "ROLE-ADMIN",
-            password: "Nasim@2015",
-            permissions: ["ceo-dashboard", "crm", "finance", "class-management", "hrm", "catalogue", "wayboss-ai", "telecaller", "marketing", "academic-coordinator", "mentor-dashboard"],
-            avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
-            email: "admin@waytone.edu",
-            phone: "+91 98765 00001",
-            lastLogin: null
-          });
-        }
-      }
-      if (ERP_DATA.hrm && Array.isArray(ERP_DATA.hrm.employees)) {
-        const nasimEmp = ERP_DATA.hrm.employees.find(e => e.id === 'WST-EMP-01' || e.username?.toLowerCase() === 'nasim');
-        if (nasimEmp) {
-          nasimEmp.password = "Nasim@2015";
-          nasimEmp.mainRole = "Admin";
-          nasimEmp.designation = "Admin";
-        }
-      }
-      console.log('✓ Central ERP Database loaded from persistence store.');
+      ERP_DATA = deepMergeData(schema, parsed);
+      sanitizeAndEnforcePermissions(ERP_DATA);
+      console.log('✓ Central ERP Database loaded from local cache.');
     } else {
       ERP_DATA = getInitialCleanSchema();
       console.log('✓ Central ERP Database initialized with clean empty schema.');
@@ -1030,6 +1036,56 @@ function loadDatabase() {
   } catch (err) {
     console.warn('Could not read from localStorage, using clean in-memory schema:', err);
     ERP_DATA = getInitialCleanSchema();
+  }
+
+  // Asynchronously attempt to load latest central state from Supabase Cloud
+  loadDatabaseFromCloud();
+}
+
+async function loadDatabaseFromCloud() {
+  if (window.WaytoneSupabase && typeof window.WaytoneSupabase.fetchCentralDatabase === 'function') {
+    try {
+      const cloudResult = await window.WaytoneSupabase.fetchCentralDatabase();
+      if (cloudResult && cloudResult.payload && typeof cloudResult.payload === 'object' && Object.keys(cloudResult.payload).length > 0) {
+        console.log(`✓ Synchronized with Supabase Central Database (Last updated by ${cloudResult.updatedBy || 'System'})`);
+        const schema = getInitialCleanSchema();
+        ERP_DATA = deepMergeData(schema, cloudResult.payload);
+        sanitizeAndEnforcePermissions(ERP_DATA);
+        window.ERP_DATA = ERP_DATA;
+
+        // Cache locally for offline resilience
+        try {
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(ERP_DATA));
+        } catch (e) {}
+
+        // Notify UI to refresh views with latest central data
+        if (typeof window.refreshActiveView === 'function') {
+          window.refreshActiveView();
+        }
+        return true;
+      }
+    } catch (ex) {
+      console.warn('Could not load from Supabase Cloud:', ex);
+    }
+  }
+  return false;
+}
+
+function applyRemoteDatabaseUpdate(remoteData, updatedBy) {
+  if (!remoteData || typeof remoteData !== 'object') return;
+  const schema = getInitialCleanSchema();
+  ERP_DATA = deepMergeData(schema, remoteData);
+  sanitizeAndEnforcePermissions(ERP_DATA);
+  window.ERP_DATA = ERP_DATA;
+
+  // Cache locally
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(ERP_DATA));
+  } catch (e) {}
+
+  // Trigger UI re-renders
+  if (typeof window.refreshActiveView === 'function') {
+    window.refreshActiveView();
   }
 }
 
@@ -1039,6 +1095,12 @@ function saveDatabase() {
   } catch (err) {
     console.warn('Could not save to localStorage:', err);
   }
+
+  // Push to Supabase Cloud if configured
+  if (window.WaytoneSupabase && typeof window.WaytoneSupabase.pushCentralDatabase === 'function') {
+    const user = window.activeAuthSession ? window.activeAuthSession.name : 'System';
+    window.WaytoneSupabase.pushCentralDatabase(ERP_DATA, user);
+  }
 }
 
 function resetDatabase() {
@@ -1047,11 +1109,19 @@ function resetDatabase() {
   } catch (e) {}
   ERP_DATA = getInitialCleanSchema();
   console.log('✓ Central ERP Database successfully reset to clean empty state.');
+
+  // Also push reset to Supabase if configured
+  if (window.WaytoneSupabase && typeof window.WaytoneSupabase.pushCentralDatabase === 'function') {
+    const user = window.activeAuthSession ? window.activeAuthSession.name : 'System';
+    window.WaytoneSupabase.pushCentralDatabase(ERP_DATA, `${user} (Reset DB)`);
+  }
 }
 
 // Expose globally
 window.ERP_DATA = ERP_DATA;
 window.loadDatabase = loadDatabase;
+window.loadDatabaseFromCloud = loadDatabaseFromCloud;
+window.applyRemoteDatabaseUpdate = applyRemoteDatabaseUpdate;
 window.saveDatabase = saveDatabase;
 window.resetDatabase = resetDatabase;
 window.getInitialCleanSchema = getInitialCleanSchema;
