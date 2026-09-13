@@ -3299,7 +3299,7 @@ function populateClassManagementView() {
   }
 
   // Initialize other tabs data
-  renderClassCourses();
+  renderClassCoursePackages();
   renderHomeActiveMentors();
   renderClassBatches();
   filterClassStudents();
@@ -3310,127 +3310,151 @@ function populateClassManagementView() {
 }
 
 // ----------------------------------------------------------
-// 2. TAB 2: COURSE & BATCH MANAGEMENT
+// 2. TAB 2: COURSE & BATCH MANAGEMENT (100% Dynamic)
 // ----------------------------------------------------------
-function renderClassCourses() {
-  const coursesList = document.getElementById('class-courses-list');
-  const courses = ERP_DATA.classManagement?.courses || [];
-  if (!coursesList) return;
+function renderClassCoursePackages() {
+  const container = document.getElementById('class-course-packages-section');
+  if (!container) return;
+
+  const courses = (ERP_DATA.catalogue?.courses || ERP_DATA.classManagement?.courses || []).filter(c => c.status !== 'Inactive');
 
   if (courses.length === 0) {
-    coursesList.innerHTML = `
-      <div class="empty-state-box" style="grid-column: 1/-1; padding: 32px;">
-        <span class="empty-state-icon">📚</span>
-        <div class="empty-state-title">No Courses Available</div>
-        <div class="empty-state-desc">No academic courses registered in the system.</div>
+    container.innerHTML = `
+      <div class="glass-card" style="margin-bottom:20px; padding:36px 24px; text-align:center; background:#ffffff; border:1px dashed #dbe2d6; border-radius:12px;">
+        <div style="font-size:36px; margin-bottom:12px;">🎓</div>
+        <h3 style="margin:0 0 6px 0; font-size:18px; color:#0f1419; font-weight:700;">No Courses &amp; Packages Configured</h3>
+        <p style="color:#6b7280; font-size:13px; margin:0 auto 18px auto; max-width:460px; line-height:1.5;">
+          All demo courses have been removed. Configure your course programs and package tiers to start enrolling students, scheduling batches, and managing mentors.
+        </p>
+        <button class="btn-primary-ai" onclick="openAddCourseModal()" style="padding:9px 18px; font-size:13px; font-weight:600;">
+          + Add Course &amp; Packages
+        </button>
       </div>
     `;
     return;
   }
 
-  coursesList.innerHTML = courses.map(crs => `
-    <div class="glass-card course-card" style="display:flex; flex-direction:column; justify-content:space-between; padding:18px;">
-      <div>
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
-          <span class="badge-pista" style="font-size:11px;">${crs.category}</span>
-          <span style="font-size:11px; font-weight:700; color:#6b7280;">ID: ${crs.id}</span>
-        </div>
-        <h4 style="margin:0 0 6px 0; color:#0f1419; font-size:15px; line-height:1.3;">${crs.title}</h4>
-        <p style="font-size:12px; color:#4b5563; margin-bottom:12px; line-height:1.4;">${crs.description}</p>
-        
-        <div style="background:#f9fafb; border:1px solid #e5e7eb; border-radius:8px; padding:10px 12px; margin-bottom:12px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px;">
-            <span style="color:#6b7280;">Tuition Fee:</span>
-            <strong style="color:var(--accent-pista-bright); font-size:14px;">${crs.feeFormatted || ('₹' + crs.fee.toLocaleString('en-IN'))}</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; margin-bottom:6px; font-size:12px;">
-            <span style="color:#6b7280;">Duration:</span>
-            <strong style="color:#0f1419;">${crs.duration}</strong>
-          </div>
-          <div style="display:flex; justify-content:space-between; font-size:12px;">
-            <span style="color:#6b7280;">Mode & Format:</span>
-            <span style="color:#0f1419; font-weight:600;">${crs.mode}</span>
-          </div>
-        </div>
+  container.innerHTML = courses.map(course => {
+    const packages = course.packages || [];
+    const pkgsHtml = packages.length > 0 ? `
+      <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap:14px; margin-bottom:14px;">
+        ${packages.map(pkg => {
+          const pkgKey = pkg.packageKey || pkg.id || pkg.name.toLowerCase();
+          const slots = pkg.availableSlots !== undefined ? pkg.availableSlots : 20;
+          const capacityText = pkg.studentCount || (pkg.studentCapacity ? `Batch capacity: ${pkg.studentCapacity}` : 'Batch capacity: 6');
+          const feeDisplay = pkg.feeFormatted || (pkg.fees ? `₹${pkg.fees}` : '₹0');
 
-        ${crs.packages ? `
-          <!-- 4 Interactive Package Access Cards -->
-          <div style="margin-bottom:12px; background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px;">
-            <div style="font-size:11px; font-weight:700; color:#374151; margin-bottom:8px; display:flex; justify-content:space-between; align-items:center;">
-              <span>📦 4 PACKAGES (CLICK TO OPEN DASHBOARD):</span>
-              <span style="color:#6b8e4e; font-size:10px; font-weight:700;">Affordable • Basic • Standard • Premium</span>
-            </div>
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
-              ${crs.packages.map(p => `
-                <button type="button" onclick="openPackageDashboard('${p.id}')" style="background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; padding:6px 8px; text-align:left; cursor:pointer; transition:all 0.15s ease;" onmouseover="this.style.borderColor='#6b8e4e'; this.style.background='#edf5e8';" onmouseout="this.style.borderColor='#dbe2d6'; this.style.background='#ffffff';">
-                  <div style="display:flex; justify-content:space-between; align-items:center;">
-                    <strong style="font-size:12px; color:#0f1419;">${p.name}</strong>
-                    <span style="font-size:9.5px; background:#edf5e8; color:#3d5a27; padding:1px 5px; border-radius:3px;">${p.totalClasses} Cls</span>
+          return `
+            <div class="glass-card package-showcase-card" style="background:#ffffff; border:1.5px solid #dbe2d6; border-radius:10px; padding:16px; display:flex; flex-direction:column; justify-content:space-between; transition:box-shadow 0.2s ease, border-color 0.2s ease;" onmouseover="this.style.borderColor='#6b8e4e'; this.style.boxShadow='0 4px 12px rgba(107,142,78,0.15)';" onmouseout="this.style.borderColor='#dbe2d6'; this.style.boxShadow='none';">
+              <div>
+                <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:8px;">
+                  <span class="badge-pista" style="font-size:11px; font-weight:700;">${pkg.name}</span>
+                  <button class="btn-secondary" style="padding:2px 7px; font-size:10px; border-radius:4px; color:#2d4a1d; border-color:#6b8e4e; font-weight:700;" onclick="event.stopPropagation(); openAdjustPackageSlotsModal('${pkgKey}', '${course.id}')">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; vertical-align:middle; margin-right:3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Slots
+                  </button>
+                </div>
+                <h4 style="margin:0 0 4px 0; font-size:15px; color:#0f1419; font-weight:700;">${pkg.name} Package</h4>
+                <div style="font-size:12px; color:#6b7280; margin-bottom:10px;">${capacityText}</div>
+
+                <div style="background:#f9faf7; border:1px solid #eef2eb; border-radius:6px; padding:8px 10px; margin-bottom:10px; display:grid; grid-template-columns:1fr 1fr; gap:6px; font-size:11.5px;">
+                  <div>
+                    <span style="color:#6b7280;">Tuition:</span>
+                    <div style="font-weight:700; color:var(--accent-pista-bright); font-size:13px;">${feeDisplay}</div>
                   </div>
-                  <div style="font-size:11px; color:#6b8e4e; font-weight:700; margin-top:2px;">${p.feeFormatted}</div>
+                  <div>
+                    <span style="color:#6b7280;">Available Slots:</span>
+                    <div style="font-weight:700; color:#2d4a1d; font-size:13px;" id="card-pkg-slots-${pkgKey}">${slots} Open</div>
+                  </div>
+                </div>
+
+                <div style="font-size:11.5px; color:#4b5563; margin-bottom:12px; line-height:1.4;">
+                  ⏱ Duration: <strong>${pkg.duration || course.duration || '40 Days'}</strong><br>
+                  📅 Classes: <strong>${pkg.totalClasses || 24} Sessions</strong>
+                </div>
+              </div>
+
+              <div style="padding-top:10px; border-top:1px solid #f0f3eb;">
+                <button class="btn-primary-ai" style="width:100%; padding:7px 10px; font-size:12px;" onclick="openPackageDashboard('${pkgKey}', '${course.id}')">
+                  Open Package Dashboard &rarr;
                 </button>
-              `).join('')}
+              </div>
             </div>
-          </div>
-        ` : ''}
-
-        <div style="margin-bottom:12px;">
-          <div style="font-size:11px; font-weight:700; color:#6b7280; margin-bottom:6px;">CORE SKILLS & TECH:</div>
-          <div style="display:flex; flex-wrap:wrap; gap:5px;">
-            ${crs.skills.map(sk => `<span style="font-size:10.5px; background:#f3f4f6; color:#374151; padding:2px 7px; border-radius:4px; border:1px solid #e5e7eb;">${sk}</span>`).join('')}
-          </div>
-        </div>
-
-        <div style="font-size:11.5px; color:#4b5563; margin-bottom:12px;">
-          🏅 <strong>Accreditation:</strong> ${crs.certifications}
-        </div>
+          `;
+        }).join('')}
       </div>
+    ` : `
+      <div style="background:#f9faf7; border:1px dashed #dbe2d6; border-radius:8px; padding:18px; text-align:center; margin-bottom:14px;">
+        <span style="font-size:12.5px; color:#6b7280;">No package tiers configured for this course yet.</span>
+      </div>
+    `;
 
-      <div style="display:flex; justify-content:space-between; align-items:center; padding-top:12px; border-top:1px solid #e5e7eb;">
-        <span style="font-size:12px; color:#4b5563;">
-          <strong style="color:#0f1419;">${crs.activeBatchesCount}</strong> Batches • <strong style="color:#0f1419;">${crs.enrolled}</strong> Students
-        </span>
-        <div style="display:flex; gap:6px;">
-          ${crs.id === 'CRS-ENG' ? `
-            <button class="btn-secondary" style="padding:6px 10px; font-size:11.5px;" onclick="openPackageDashboard('affordable')">
-              📦 Packages
+    return `
+      <div class="glass-card" style="margin-bottom:20px; padding:20px; border:1px solid #dbe2d6; border-radius:10px; background:#ffffff;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; flex-wrap:wrap; gap:10px;">
+          <div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="badge-pista" style="font-size:11px; font-weight:700;">${course.category || 'Academic'}</span>
+              <h3 style="margin:0; font-size:17px; color:#0f1419; font-weight:700;">${course.name || course.title}</h3>
+            </div>
+            <p style="font-size:12px; color:#6b7280; margin:2px 0 0 0;">
+              ${course.duration || 'Flexible'} &bull; ${course.weeklyClasses || 'Weekly Classes'} &bull; ${packages.length} Packages
+            </p>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-secondary" style="padding:6px 12px; font-size:12px;" onclick="openAddCourseModal('${course.id}')">
+              ⚙ Configure / Edit Packages
             </button>
-          ` : ''}
-          <button class="btn-primary-ai" style="padding:6px 12px; font-size:12px;" onclick="openEnrollForCourse('${crs.id}')">
-            + Enroll Student
-          </button>
+            <button class="btn-primary-ai" style="padding:6px 12px; font-size:12px;" onclick="openModal('modal-create-batch')">
+              + Create Batch
+            </button>
+          </div>
+        </div>
+
+        ${pkgsHtml}
+
+        <!-- Active Faculty Mentors Capacity Rule Strip -->
+        <div style="background:#edf5e8; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span style="font-size:16px;">👥</span>
+            <span style="font-size:12.5px; color:#0f1419; font-weight:700;">Active Mentors Capacity Rule:</span>
+            <span class="badge-pista" style="font-size:11px; font-weight:700; background:#6b8e4e; color:#ffffff; padding:2px 8px; border-radius:4px;">Each mentor can take 3 to 4 batches</span>
+          </div>
+          <div style="display:flex; gap:8px;">
+            <button class="btn-primary-ai" style="padding:5px 12px; font-size:12px;" onclick="openAssignMentorModal()">+ Assign Mentor Slot</button>
+            <button class="btn-secondary" style="padding:5px 12px; font-size:12px;" onclick="openActiveMentorsModal()">Master Mentors Directory &rarr;</button>
+          </div>
         </div>
       </div>
-    </div>
-  `).join('');
+    `;
+  }).join('');
 
-  // Populate course dropdowns in modals
-  const batchCourseSelect = document.getElementById('batch-add-course');
-  const enrollCourseSelect = document.getElementById('enroll-student-course');
-  if (batchCourseSelect) {
-    batchCourseSelect.innerHTML = courses.map(c => `<option value="${c.id}">${c.title} (${c.id})</option>`).join('');
-  }
-  if (enrollCourseSelect) {
-    enrollCourseSelect.innerHTML = courses.map(c => `<option value="${c.title}" data-fee="${c.fee}" data-id="${c.id}">${c.title}</option>`).join('');
-  }
+  syncCourseDropdownsAcrossERP();
+}
+
+// Backward compatibility alias
+function renderClassCourses() {
+  renderClassCoursePackages();
 }
 
 // ----------------------------------------------------------
-// COMMUNICATIVE ENGLISH: PACKAGE DASHBOARD & MENTOR ASSIGNMENTS
+// PACKAGE DASHBOARD & MENTOR ASSIGNMENTS ENGINE
 // ----------------------------------------------------------
-let currentActivePackageId = 'affordable';
+let currentActiveCourseId = null;
+let currentActivePackageId = null;
 let currentPackageTab = 'students';
 
-function openPackageDashboard(pkgId) {
-  currentActivePackageId = pkgId || 'affordable';
+function openPackageDashboard(pkgId, courseId) {
+  if (courseId) currentActiveCourseId = courseId;
+  currentActivePackageId = pkgId || null;
   currentPackageTab = 'students';
-  renderPackageDashboard(currentActivePackageId);
+  renderPackageDashboard(currentActivePackageId, currentActiveCourseId);
   openModal('modal-package-dashboard');
 }
 
-function switchActivePackage(pkgId) {
-  currentActivePackageId = pkgId || 'affordable';
-  renderPackageDashboard(currentActivePackageId);
+function switchActivePackage(pkgId, courseId) {
+  if (courseId) currentActiveCourseId = courseId;
+  currentActivePackageId = pkgId;
+  renderPackageDashboard(currentActivePackageId, currentActiveCourseId);
 }
 
 function switchPackageTab(tabId) {
@@ -3488,80 +3512,139 @@ function switchPackageTab(tabId) {
   }
 }
 
-function getActivePackageObject(pkgId) {
-  const course = ERP_DATA.classManagement.courses.find(c => c.id === 'CRS-ENG');
-  if (!course || !course.packages) return null;
-  const id = pkgId || currentActivePackageId;
-  return course.packages.find(p => p.id.toLowerCase() === id.toLowerCase()) || course.packages[0];
+function getActivePackageObject(pkgId, courseId) {
+  const courses = (ERP_DATA.catalogue?.courses && ERP_DATA.catalogue.courses.length > 0)
+    ? ERP_DATA.catalogue.courses
+    : (ERP_DATA.classManagement?.courses || []);
+
+  let course = null;
+  if (courseId) {
+    course = courses.find(c => c.id === courseId);
+  }
+  if (!course && currentActiveCourseId) {
+    course = courses.find(c => c.id === currentActiveCourseId);
+  }
+  if (!course && pkgId) {
+    const norm = (pkgId || '').toLowerCase();
+    course = courses.find(c => (c.packages || []).some(p => (p.packageKey || p.id || p.name || '').toLowerCase() === norm));
+  }
+  if (!course) {
+    course = courses.find(c => c.packages && c.packages.length > 0) || courses[0];
+  }
+  if (!course) return null;
+  currentActiveCourseId = course.id;
+
+  const packages = course.packages || [];
+  let pkg = null;
+  if (packages.length > 0) {
+    const id = (pkgId || currentActivePackageId || '').toLowerCase();
+    pkg = packages.find(p => (p.packageKey || p.id || p.name || '').toLowerCase() === id);
+    if (!pkg) pkg = packages[0];
+  } else {
+    pkg = {
+      id: 'default',
+      packageKey: 'default',
+      name: course.name || course.title,
+      fees: course.fees,
+      feeFormatted: course.feeFormatted || ('₹' + (course.fees || 0)),
+      totalClasses: 24,
+      duration: course.duration || '40 Days',
+      enrolled: course.enrolledStudents || course.enrolled || 0,
+      enrolledStudents: course.enrolledStudents || course.enrolled || 0,
+      availableSlots: course.availableSlots !== undefined ? course.availableSlots : 20,
+      totalSlots: course.totalCapacity || 20,
+      completionRate: '100%',
+      batches: [],
+      leadMentor: course.leadMentor || 'Unassigned',
+      mentors: [],
+      students: []
+    };
+  }
+
+  if (pkg) {
+    currentActivePackageId = pkg.packageKey || pkg.id;
+    pkg.course = course;
+  }
+  return pkg;
 }
 
-function renderPackageDashboard(pkgId) {
-  const pkg = getActivePackageObject(pkgId);
+function renderPackageDashboard(pkgId, courseId) {
+  const pkg = getActivePackageObject(pkgId, courseId);
   if (!pkg) return;
+  const course = pkg.course || { name: 'Course Program', title: 'Course Program', id: 'CRS-01' };
 
   // 1. Update Title & Header
   const titleEl = document.getElementById('pkg-dash-title');
   const badgeEl = document.getElementById('pkg-dash-badge');
   const subEl = document.getElementById('pkg-dash-subtitle');
-  if (titleEl) titleEl.textContent = `Communicative English — ${pkg.name} Package Dashboard`;
-  if (badgeEl) badgeEl.textContent = `${pkg.name} (${pkg.badge || 'Active'})`;
-  if (subEl) subEl.textContent = `${pkg.description} • Fee: ${pkg.feeFormatted} • Total Classes: ${pkg.totalClasses} Sessions`;
+  const footerEl = document.getElementById('pkg-dash-course-footer');
 
-  // 2. Update Switcher Pills
-  const pillIds = ['affordable', 'basic', 'standard', 'premium'];
-  pillIds.forEach(pId => {
-    const pill = document.getElementById(`pkg-pill-${pId}`);
-    if (pill) {
-      if (pId === pkg.id) {
-        pill.style.background = '#6b8e4e';
-        pill.style.color = '#ffffff';
-      } else {
-        pill.style.background = 'transparent';
-        pill.style.color = '#0f1419';
-      }
+  if (titleEl) titleEl.textContent = `${course.name || course.title} — ${pkg.name} Package Dashboard`;
+  if (badgeEl) badgeEl.textContent = `${pkg.name} (${pkg.badge || 'Active'})`;
+  if (subEl) subEl.textContent = `${pkg.description || 'Program details'} • Fee: ${pkg.feeFormatted || ('₹' + (pkg.fees || 0))} • Total Classes: ${pkg.totalClasses || 24} Sessions`;
+  if (footerEl) footerEl.textContent = course.name || course.title;
+
+  // 2. Dynamic Switcher Pills
+  const switcherContainer = document.getElementById('pkg-dash-switcher-container');
+  if (switcherContainer) {
+    const pkgs = course.packages || [];
+    if (pkgs.length > 0) {
+      switcherContainer.style.display = 'flex';
+      switcherContainer.innerHTML = pkgs.map(p => {
+        const pKey = p.packageKey || p.id || p.name.toLowerCase();
+        const isSelected = pKey === (pkg.packageKey || pkg.id || pkg.name.toLowerCase());
+        return `
+          <button class="pkg-switch-pill" onclick="switchActivePackage('${pKey}', '${course.id}')" style="padding:4px 10px; font-size:11px; font-weight:600; border-radius:6px; border:none; cursor:pointer; background:${isSelected ? '#6b8e4e' : 'transparent'}; color:${isSelected ? '#ffffff' : '#0f1419'};">
+            ${p.name}
+          </button>
+        `;
+      }).join('');
+    } else {
+      switcherContainer.style.display = 'none';
     }
-  });
+  }
 
   // 3. Render Top Metric Strip
   const summaryBar = document.getElementById('pkg-summary-bar');
   if (summaryBar) {
     const totalMentorSlots = (pkg.mentors || []).reduce((acc, m) => {
-      const match = (m.availableSlots || '').match(/(\d+)\s*slots/i);
+      const match = (m.availableSlots || '').toString().match(/(\d+)\s*slots/i);
       return acc + (match ? parseInt(match[1]) : 4);
     }, 0);
+    const pkgKey = pkg.packageKey || pkg.id || pkg.name.toLowerCase();
 
     summaryBar.innerHTML = `
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="font-size:11px; font-weight:700; color:#6b7280;">PACKAGE FEE</div>
-        <div style="font-size:18px; font-weight:800; color:var(--accent-pista-bright); margin-top:2px;">${pkg.feeFormatted}</div>
+        <div style="font-size:18px; font-weight:800; color:var(--accent-pista-bright); margin-top:2px;">${pkg.feeFormatted || ('₹' + (pkg.fees || 0))}</div>
         <div style="font-size:10.5px; color:#4b5563;">₹ Indian Rupee</div>
       </div>
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="font-size:11px; font-weight:700; color:#6b7280;">TOTAL CLASSES</div>
-        <div style="font-size:18px; font-weight:800; color:#0f1419; margin-top:2px;">${pkg.totalClasses} Classes</div>
-        <div style="font-size:10.5px; color:#4b5563;">Duration: ${pkg.duration}</div>
+        <div style="font-size:18px; font-weight:800; color:#0f1419; margin-top:2px;">${pkg.totalClasses || 24} Classes</div>
+        <div style="font-size:10.5px; color:#4b5563;">Duration: ${pkg.duration || course.duration || 'Flexible'}</div>
       </div>
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="font-size:11px; font-weight:700; color:#6b7280;">ENROLLED STUDENTS</div>
-        <div style="font-size:18px; font-weight:800; color:#0f1419; margin-top:2px;">${pkg.enrolled} Students</div>
+        <div style="font-size:18px; font-weight:800; color:#0f1419; margin-top:2px;">${pkg.enrolledStudents || pkg.enrolled || 0} Students</div>
         <div style="font-size:10.5px; color:#4b5563;">Active in batches</div>
       </div>
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="font-size:11px; font-weight:700; color:#6b7280;">ACTIVE BATCHES</div>
-        <div style="font-size:15px; font-weight:700; color:#0f1419; margin-top:3px;">${(pkg.batches || []).join(', ')}</div>
-        <div style="font-size:10.5px; color:#4b5563;">Lead: ${pkg.leadMentor}</div>
+        <div style="font-size:15px; font-weight:700; color:#0f1419; margin-top:3px;">${(pkg.batches || []).join(', ') || 'None scheduled'}</div>
+        <div style="font-size:10.5px; color:#4b5563;">Lead: ${pkg.leadMentor || course.leadMentor || 'Unassigned'}</div>
       </div>
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="display:flex; justify-content:space-between; align-items:center;">
           <div style="font-size:11px; font-weight:700; color:#6b7280;">AVAILABLE SLOTS</div>
-          <button onclick="openAdjustPackageSlotsModal('${currentActivePackageId}')" style="background:#edf5e8; border:1px solid #6b8e4e; color:#2d4a1d; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer;" title="Adjust Available Slots Left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; vertical-align:middle; margin-right:3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Slots</button>
+          <button onclick="openAdjustPackageSlotsModal('${pkgKey}', '${course.id}')" style="background:#edf5e8; border:1px solid #6b8e4e; color:#2d4a1d; padding:2px 7px; border-radius:4px; font-size:10px; font-weight:700; cursor:pointer;" title="Adjust Available Slots Left"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block; vertical-align:middle; margin-right:3px;"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg> Edit Slots</button>
         </div>
         <div style="font-size:18px; font-weight:800; color:#3d5a27; margin-top:2px;">${pkg.availableSlots !== undefined ? pkg.availableSlots : totalMentorSlots} Open Slots</div>
         <div style="font-size:10.5px; color:#4b5563;">${pkg.totalSlots ? `${pkg.enrolled || pkg.enrolledStudents || 0} of ${pkg.totalSlots} filled` : 'Across mentors'}</div>
       </div>
       <div style="background:#f5f7f2; border:1px solid #dbe2d6; border-radius:8px; padding:10px 14px;">
         <div style="font-size:11px; font-weight:700; color:#6b7280;">COMPLETION RATE</div>
-        <div style="font-size:18px; font-weight:800; color:var(--accent-pista-bright); margin-top:2px;">${pkg.completionRate}</div>
+        <div style="font-size:18px; font-weight:800; color:var(--accent-pista-bright); margin-top:2px;">${pkg.completionRate || '100%'}</div>
         <div style="font-size:10.5px; color:#4b5563;">Student pass rate</div>
       </div>
     `;
@@ -3797,9 +3880,9 @@ function submitAssignMentor() {
     return;
   }
 
-  const course = ERP_DATA.classManagement.courses.find(c => c.id === 'CRS-ENG');
-  if (!course || !course.packages) return;
-  const pkg = course.packages.find(p => p.id === pkgId) || course.packages[0];
+  const pkg = getActivePackageObject(pkgId, currentActiveCourseId);
+  if (!pkg) return;
+  const course = pkg.course;
 
   if (!pkg.mentors) pkg.mentors = [];
   const existingMentorIdx = pkg.mentors.findIndex(m => m.batchNumbers === batchNumbers && m.mentorName === mentorName);
@@ -3814,28 +3897,33 @@ function submitAssignMentor() {
       mentorName: mentorName,
       batchNumbers: batchNumbers,
       classesCompleted: completedClasses,
-      totalClasses: pkg.totalClasses,
+      totalClasses: pkg.totalClasses || 24,
       availableSlots: availableSlots,
       schedule: schedule,
       room: room
     });
   }
 
+  if (typeof saveDatabase === 'function') {
+    saveDatabase();
+  }
+
   closeModal('modal-assign-mentor');
   showToastNotification(`Mentor assignment for ${mentorName} (${batchNumbers}) saved successfully.`);
 
   // If package dashboard is open, re-render
-  currentActivePackageId = pkgId;
-  renderPackageDashboard(currentActivePackageId);
+  currentActivePackageId = pkg.packageKey || pkg.id || pkgId;
+  renderPackageDashboard(currentActivePackageId, currentActiveCourseId);
   switchPackageTab('mentors');
 }
 
 // Quick Enroll for Active Package
 function openEnrollForActivePackage() {
-  const pkg = getActivePackageObject(currentActivePackageId);
+  const pkg = getActivePackageObject(currentActivePackageId, currentActiveCourseId);
   const enrollCourseSelect = document.getElementById('enroll-student-course');
   if (enrollCourseSelect && pkg) {
-    enrollCourseSelect.value = `Communicative English (${pkg.name})`;
+    const courseName = pkg.course?.name || pkg.course?.title || '';
+    enrollCourseSelect.value = courseName ? `${courseName} (${pkg.name})` : pkg.name;
   }
   openModal('modal-enroll-student');
 }
@@ -7315,8 +7403,14 @@ function populateCatalogueView() {
 
   if (kpiTotal) kpiTotal.textContent = `${totalCourses} Programs`;
   if (kpiPkgs) kpiPkgs.textContent = `${totalPackages} Packages`;
-  if (kpiSlots) kpiSlots.textContent = `${availableSlots} Slots`;
-  if (kpiRunrate && ERP_DATA.catalogue.summary) kpiRunrate.textContent = ERP_DATA.catalogue.summary.annualTuitionGross;
+  if (kpiRunrate) {
+    kpiRunrate.textContent = courses.length === 0 ? '₹0' : (ERP_DATA.catalogue.summary?.annualTuitionGross || '₹0');
+  }
+
+  const countLabel = document.getElementById('catalogue-count-label');
+  if (countLabel) {
+    countLabel.textContent = `Showing ${courses.length} course${courses.length === 1 ? '' : 's'}`;
+  }
 
   renderCourseCatalogue(courses);
   syncCourseDropdownsAcrossERP();
@@ -7328,12 +7422,20 @@ function renderCourseCatalogue(coursesToRender) {
 
   const courses = coursesToRender || ERP_DATA.catalogue.courses || [];
 
+  const countLabel = document.getElementById('catalogue-count-label');
+  if (countLabel) {
+    countLabel.textContent = `Showing ${courses.length} course${courses.length === 1 ? '' : 's'}`;
+  }
+
   if (courses.length === 0) {
     container.innerHTML = `
-      <div style="grid-column: 1/-1; padding: 40px; text-align:center; background:#ffffff; border:1px solid #dbe2d6; border-radius:10px;">
-        <h4 style="color:#0f1419; margin:0 0 8px 0;">No matching courses found</h4>
-        <p style="color:#6b7280; font-size:13px; margin:0 0 16px 0;">Try adjusting your search terms or filters.</p>
-        <button class="btn-primary-ai" onclick="openAddCourseModal()">+ Add New Course</button>
+      <div style="grid-column: 1/-1; padding: 48px 24px; text-align:center; background:#ffffff; border:1px dashed #dbe2d6; border-radius:12px; margin: 10px 0;">
+        <div style="font-size:36px; margin-bottom:12px;">📚</div>
+        <h4 style="color:#0f1419; margin:0 0 6px 0; font-size:17px; font-weight:700;">No Courses in Catalogue</h4>
+        <p style="color:#6b7280; font-size:13px; margin:0 auto 18px auto; max-width:440px; line-height:1.5;">
+          All demo courses have been removed. Configure your course programs and package tiers to display them in the catalogue.
+        </p>
+        <button class="btn-primary-ai" onclick="openAddCourseModal()" style="padding:9px 18px; font-size:13px; font-weight:600;">+ Add Course &amp; Packages</button>
       </div>
     `;
     return;
@@ -7607,28 +7709,49 @@ function saveCourseForm(event) {
     const pkgFeeVal = box.querySelector('.pkg-input-fees')?.value.trim() || '2000';
     const pkgDuration = box.querySelector('.pkg-input-duration')?.value.trim() || duration;
 
+    const studentCountNum = parseInt(pkgStudents.replace(/\D/g, '')) || 6;
     packages.push({
       id: `pkg-${Date.now().toString().slice(-4)}-${idx}`,
+      packageKey: pkgName.toLowerCase().replace(/[^a-z0-9]/g, '-'),
       name: pkgName,
       studentCount: pkgStudents.includes('students') ? pkgStudents : `Batch 1 - ${pkgStudents} students`,
       fees: pkgFeeVal,
       feeFormatted: pkgFeeVal.includes('₹') ? pkgFeeVal : `₹${pkgFeeVal}`,
       duration: pkgDuration,
       schedule: `${weeklyClasses} class`,
-      description: `${pkgName} curriculum tailored for ${pkgStudents}.`
+      description: `${pkgName} curriculum tailored for ${pkgStudents}.`,
+      availableSlots: 20,
+      totalSlots: 20,
+      enrolledStudents: 0,
+      enrolled: 0,
+      totalClasses: 24,
+      completionRate: '100%',
+      studentCapacity: studentCountNum,
+      mentors: [],
+      students: []
     });
   });
 
   if (packages.length === 0) {
     packages.push({
       id: `pkg-std-${Date.now().toString().slice(-4)}`,
+      packageKey: 'standard',
       name: 'Standard',
       studentCount: 'Batch 1 - 5 students',
       fees: fees,
       feeFormatted: `₹${fees.toLocaleString('en-IN')}`,
       duration: duration,
       schedule: `${weeklyClasses} class`,
-      description: 'Standard accredited training package.'
+      description: 'Standard accredited training package.',
+      availableSlots: 20,
+      totalSlots: 20,
+      enrolledStudents: 0,
+      enrolled: 0,
+      totalClasses: 24,
+      completionRate: '100%',
+      studentCapacity: 6,
+      mentors: [],
+      students: []
     });
   }
 
@@ -7649,6 +7772,8 @@ function saveCourseForm(event) {
       existing.benefits = benefits;
       existing.offers = offers;
       existing.packages = packages;
+      existing.availableSlots = packages.reduce((sum, p) => sum + (p.availableSlots || 0), 0);
+      existing.totalCapacity = packages.reduce((sum, p) => sum + (p.totalSlots || 20), 0);
     }
     showToastNotification(`Course "${name}" updated successfully.`);
   } else {
@@ -7665,8 +7790,8 @@ function saveCourseForm(event) {
       duration: duration,
       weeklyClasses: weeklyClasses,
       enrolledStudents: 0,
-      totalCapacity: 50,
-      availableSlots: 50,
+      totalCapacity: packages.reduce((sum, p) => sum + (p.totalSlots || 20), 0),
+      availableSlots: packages.reduce((sum, p) => sum + (p.availableSlots || 20), 0),
       status: 'Active',
       leadMentor: document.getElementById('course-lead-mentor')?.value || 'Unassigned',
       benefits: benefits,
@@ -7679,12 +7804,23 @@ function saveCourseForm(event) {
   }
 
   // Cross-module sync
+  if (!ERP_DATA.catalogue) ERP_DATA.catalogue = { courses: [] };
+  if (!ERP_DATA.classManagement) ERP_DATA.classManagement = { courses: [] };
+  ERP_DATA.catalogue.courses = courses;
+  ERP_DATA.classManagement.courses = courses;
   ERP_DATA.courses = courses;
-  ERP_DATA.classes.courses = courses;
-  syncCourseDropdownsAcrossERP();
+  if (ERP_DATA.classes) {
+    ERP_DATA.classes.courses = courses;
+  }
 
+  if (typeof saveDatabase === 'function') {
+    saveDatabase();
+  }
+
+  syncCourseDropdownsAcrossERP();
   closeModal('modal-add-course');
   populateCatalogueView();
+  renderClassCoursePackages();
 }
 
 // ----------------------------------------------------------
@@ -7816,11 +7952,18 @@ function deleteCourse(courseId) {
   const confirmed = confirm(`Are you sure you want to delete "${courseName}" from the catalogue?\n\nThis will permanently remove the course, all configured packages, and seat allocations.`);
   if (!confirmed) return;
 
-  // Remove from catalogue courses array
+  // Remove from catalogue and classManagement courses
   ERP_DATA.catalogue.courses = (ERP_DATA.catalogue.courses || []).filter(c => c.id !== courseId);
+  if (ERP_DATA.classManagement && ERP_DATA.classManagement.courses) {
+    ERP_DATA.classManagement.courses = ERP_DATA.classManagement.courses.filter(c => c.id !== courseId);
+  }
   ERP_DATA.courses = ERP_DATA.catalogue.courses;
   if (ERP_DATA.classes) {
     ERP_DATA.classes.courses = ERP_DATA.catalogue.courses;
+  }
+
+  if (typeof saveDatabase === 'function') {
+    saveDatabase();
   }
 
   // Close modals if open
@@ -7832,6 +7975,7 @@ function deleteCourse(courseId) {
 
   // Refresh Catalogue view, KPIs and cross-module sync
   populateCatalogueView();
+  renderClassCoursePackages();
   syncCourseDropdownsAcrossERP();
 
   showToastNotification(`Product "${courseName}" has been successfully deleted.`);
@@ -7851,22 +7995,98 @@ function deleteCourseFromForm() {
 }
 
 // ----------------------------------------------------------
-// Synchronize Course Dropdowns Across Entire ERP
+// Synchronize Course Dropdowns Across Entire ERP (100% Dynamic)
 // ----------------------------------------------------------
 function syncCourseDropdownsAcrossERP() {
-  const courses = (ERP_DATA.catalogue.courses || []).filter(c => c.status === 'Active');
+  const courses = (ERP_DATA.catalogue?.courses || []).filter(c => c.status !== 'Inactive');
 
-  const dropdownIds = ['batch-course-select', 'create-batch-course', 'enroll-student-course', 'crm-inquiry-course'];
+  // Simple course dropdowns
+  const simpleCourseDropdownIds = [
+    'batch-course-select', 
+    'create-batch-course', 
+    'batch-add-course', 
+    'coord-newbatch-course', 
+    'crm-inquiry-course'
+  ];
 
-  dropdownIds.forEach(id => {
+  simpleCourseDropdownIds.forEach(id => {
     const el = document.getElementById(id);
     if (el) {
       const currentVal = el.value;
-      el.innerHTML = courses.map(c => `
-        <option value="${c.id}">${c.name || c.title} (${c.feeDisplay || c.feeFormatted || ('₹' + c.fees)})</option>
+      if (courses.length === 0) {
+        el.innerHTML = '<option value="">-- No courses added yet --</option>';
+      } else {
+        el.innerHTML = courses.map(c => `
+          <option value="${c.id}">${c.name || c.title} (${c.feeDisplay || c.feeFormatted || ('₹' + (c.fees || 0))})</option>
+        `).join('');
+        if (currentVal && courses.some(c => c.id === currentVal)) {
+          el.value = currentVal;
+        }
+      }
+    }
+  });
+
+  // Enroll course dropdown
+  const enrollCourseSelect = document.getElementById('enroll-student-course');
+  if (enrollCourseSelect) {
+    const currentVal = enrollCourseSelect.value;
+    if (courses.length === 0) {
+      enrollCourseSelect.innerHTML = '<option value="">-- No courses added yet --</option>';
+    } else {
+      enrollCourseSelect.innerHTML = courses.map(c => `
+        <option value="${c.name || c.title}" data-fee="${c.fees || 0}" data-id="${c.id}">${c.name || c.title} (${c.feeDisplay || c.feeFormatted || ('₹' + (c.fees || 0))})</option>
       `).join('');
-      if (currentVal && courses.some(c => c.id === currentVal)) {
-        el.value = currentVal;
+      if (currentVal && courses.some(c => (c.name || c.title) === currentVal || c.id === currentVal)) {
+        enrollCourseSelect.value = currentVal;
+      }
+    }
+  }
+
+  // Filter dropdown: class-student-filter-course
+  const filterCourseSelect = document.getElementById('class-student-filter-course');
+  if (filterCourseSelect) {
+    const currentVal = filterCourseSelect.value;
+    filterCourseSelect.innerHTML = '<option value="">All Courses</option>' + courses.map(c => `
+      <option value="${c.name || c.title}">${c.name || c.title}</option>
+    `).join('');
+    if (currentVal) filterCourseSelect.value = currentVal;
+  }
+
+  // Package dropdowns: photo-ext-course, manual-course, inv-module-service, tc-upload-course, assign-mentor-pkg, mkt-modal-camp-track
+  const packageDropdownConfigs = [
+    { id: 'photo-ext-course', defaultText: '-- No courses added yet --' },
+    { id: 'manual-course', defaultText: 'Select Course Package (Optional)' },
+    { id: 'inv-module-service', defaultText: 'Select Course Package' },
+    { id: 'tc-upload-course', defaultText: 'Select Course' },
+    { id: 'assign-mentor-pkg', defaultText: 'Select Package' },
+    { id: 'mkt-modal-camp-track', defaultText: 'All Programs' }
+  ];
+
+  packageDropdownConfigs.forEach(cfg => {
+    const el = document.getElementById(cfg.id);
+    if (el) {
+      const currentVal = el.value;
+      if (courses.length === 0) {
+        el.innerHTML = `<option value="">${cfg.defaultText}</option>`;
+      } else {
+        let optionsHtml = `<option value="">${cfg.defaultText}</option>`;
+        courses.forEach(c => {
+          if (c.packages && c.packages.length > 0) {
+            c.packages.forEach(p => {
+              const pVal = `${c.name || c.title} (${p.name})`;
+              const pKey = p.packageKey || p.id || p.name.toLowerCase();
+              const valToUse = cfg.id === 'assign-mentor-pkg' ? pKey : pVal;
+              optionsHtml += `<option value="${valToUse}">${c.name || c.title} - ${p.name} (${p.feeFormatted || ('₹' + (p.fees || 0))})</option>`;
+            });
+          } else {
+            optionsHtml += `<option value="${c.name || c.title}">${c.name || c.title} (${c.feeFormatted || ('₹' + (c.fees || 0))})</option>`;
+          }
+        });
+        if (cfg.id === 'inv-module-service') {
+          optionsHtml += '<option value="Corporate B2B Upskilling">Corporate B2B Upskilling</option>';
+        }
+        el.innerHTML = optionsHtml;
+        if (currentVal) el.value = currentVal;
       }
     }
   });
@@ -7922,26 +8142,15 @@ function checkMentorSlotAvailability(courseId = null, packageKey = null, request
   };
 }
 
-// Open modal to edit Available Slots Left for Communicative English (or other courses)
-function openAdjustPackageSlotsModal(pkgId) {
+// Open modal to edit Available Slots Left (100% Dynamic)
+function openAdjustPackageSlotsModal(pkgId, courseId) {
   const modal = document.getElementById('modal-adjust-package-slots');
   if (!modal) return;
 
-  const course = (ERP_DATA.catalogue?.courses || []).find(c => c.id === 'CRS-ENG' || c.name.toLowerCase().includes('english')) || (ERP_DATA.catalogue?.courses || [])[0];
-  if (!course) return;
-
-  const normId = (pkgId || 'affordable').toLowerCase();
-  let pkg = (course.packages || []).find(p => 
-    p.packageKey === normId || 
-    p.id === normId || 
-    p.name.toLowerCase() === normId ||
-    p.name.toLowerCase().includes(normId)
-  );
-
-  if (!pkg && course.packages && course.packages.length > 0) {
-    pkg = course.packages[0];
-  }
+  const pkg = getActivePackageObject(pkgId, courseId);
   if (!pkg) return;
+  const course = pkg.course || (ERP_DATA.catalogue?.courses || [])[0];
+  if (!course) return;
 
   // Set hidden inputs
   const courseIdInput = document.getElementById('adj-slots-course-id');
@@ -7960,7 +8169,7 @@ function openAdjustPackageSlotsModal(pkgId) {
 
   if (courseBadge) courseBadge.textContent = course.name || course.title;
   if (pkgTitle) pkgTitle.textContent = `${pkg.name} Package`;
-  if (pkgFee) pkgFee.textContent = pkg.feeFormatted || pkg.feeDisplay || `₹${pkg.fees} / ${pkg.duration || 'Period'}`;
+  if (pkgFee) pkgFee.textContent = pkg.feeFormatted || pkg.feeDisplay || `₹${pkg.fees || 0} / ${pkg.duration || 'Period'}`;
   if (batchCap) batchCap.textContent = `${pkg.studentCapacity || 6} Students / Batch`;
 
   const enrolled = pkg.enrolledStudents || pkg.enrolled || 0;
@@ -8068,8 +8277,12 @@ function saveAdjustedPackageSlots() {
   }
 
   // Cross-module sync & UI refresh
+  if (typeof saveDatabase === 'function') {
+    saveDatabase();
+  }
   syncCommunicativeEnglishCardSlots();
   populateCatalogueView();
+  renderClassCoursePackages();
 
   // If Course Details is open, update its display
   const courseDetailsSlots = document.getElementById('course-details-slots');
@@ -8080,24 +8293,24 @@ function saveAdjustedPackageSlots() {
 
   // If Package Dashboard is open, refresh summary
   if (typeof renderPackageDashboard === 'function') {
-    renderPackageDashboard();
+    renderPackageDashboard(pkg.packageKey || pkg.id, course.id);
   }
 
   closeModal('modal-adjust-package-slots');
   showToastNotification(`✓ ${pkg.name} package available slots updated: ${oldSlots} → ${newSlots} open seats. Course available slots: ${course.availableSlots}.`);
 }
 
-// Sync slot counts on the Communicative English package cards in Class Management
+// Sync slot counts on all course package cards in Class Management
 function syncCommunicativeEnglishCardSlots() {
-  const course = (ERP_DATA.catalogue?.courses || []).find(c => c.id === 'CRS-ENG' || c.name.toLowerCase().includes('english'));
-  if (!course || !course.packages) return;
-
-  course.packages.forEach(pkg => {
-    const key = pkg.packageKey || pkg.name.toLowerCase();
-    const el = document.getElementById(`card-pkg-slots-${key}`);
-    if (el) {
-      el.textContent = `${pkg.availableSlots !== undefined ? pkg.availableSlots : 20} Open`;
-    }
+  const courses = ERP_DATA.catalogue?.courses || [];
+  courses.forEach(course => {
+    (course.packages || []).forEach(pkg => {
+      const key = pkg.packageKey || pkg.id || pkg.name.toLowerCase();
+      const el = document.getElementById(`card-pkg-slots-${key}`);
+      if (el) {
+        el.textContent = `${pkg.availableSlots !== undefined ? pkg.availableSlots : 20} Open`;
+      }
+    });
   });
 }
 
@@ -8135,26 +8348,37 @@ function syncCatalogueAndActiveStudents() {
   syncCommunicativeEnglishCardSlots();
 }
 
-// CRM Admission slot deduction & student roster sync
+// CRM Admission slot deduction & student roster sync (100% Dynamic)
 function handleCRMAdmissionSlotDeduction(lead) {
   if (!lead) return;
 
-  const leadCourseStr = (lead.coursePackage || 'Communicative English').toLowerCase();
-  let deductedCourseName = 'Communicative English';
+  const leadCourseStr = (lead.coursePackage || '').toLowerCase();
+  let deductedCourseName = 'Academic Course';
   let deductedPkgName = '';
   let remSlots = 0;
 
-  // 1. Check if Communicative English
-  if (leadCourseStr.includes('communicative') || leadCourseStr.includes('english')) {
-    let pkgKey = 'affordable';
-    if (leadCourseStr.includes('package 2') || leadCourseStr.includes('basic')) pkgKey = 'basic';
-    else if (leadCourseStr.includes('package 3') || leadCourseStr.includes('standard')) pkgKey = 'standard';
-    else if (leadCourseStr.includes('package 4') || leadCourseStr.includes('premium')) pkgKey = 'premium';
+  const courses = ERP_DATA.catalogue?.courses || [];
+  let catCourse = courses.find(c => 
+    leadCourseStr.includes((c.name || '').toLowerCase()) || 
+    leadCourseStr.includes((c.title || '').toLowerCase()) ||
+    (c.id && leadCourseStr.includes(c.id.toLowerCase()))
+  );
 
-    const catCourse = (ERP_DATA.catalogue?.courses || []).find(c => c.id === 'CRS-ENG' || c.name.toLowerCase().includes('english'));
-    if (catCourse) {
-      deductedCourseName = catCourse.name || 'Communicative English';
-      const pkg = (catCourse.packages || []).find(p => p.packageKey === pkgKey || p.name.toLowerCase() === pkgKey);
+  if (!catCourse && courses.length > 0) {
+    catCourse = courses[0];
+  }
+
+  if (catCourse) {
+    deductedCourseName = catCourse.name || catCourse.title;
+    const packages = catCourse.packages || [];
+    let pkg = null;
+
+    if (packages.length > 0) {
+      pkg = packages.find(p => 
+        (p.packageKey && leadCourseStr.includes(p.packageKey.toLowerCase())) ||
+        (p.name && leadCourseStr.includes(p.name.toLowerCase()))
+      ) || packages[0];
+
       if (pkg) {
         deductedPkgName = pkg.name;
         if (pkg.availableSlots > 0) {
@@ -8163,36 +8387,23 @@ function handleCRMAdmissionSlotDeduction(lead) {
         pkg.enrolledStudents = (pkg.enrolledStudents || 0) + 1;
         remSlots = pkg.availableSlots;
       }
-      catCourse.enrolledStudents = (catCourse.enrolledStudents || 0) + 1;
-      catCourse.availableSlots = (catCourse.packages || []).reduce((sum, p) => sum + (p.availableSlots || 0), 0);
+    } else {
+      if (catCourse.availableSlots > 0) catCourse.availableSlots -= 1;
+      remSlots = catCourse.availableSlots;
     }
 
+    catCourse.enrolledStudents = (catCourse.enrolledStudents || 0) + 1;
+    catCourse.availableSlots = (catCourse.packages && catCourse.packages.length > 0)
+      ? catCourse.packages.reduce((sum, p) => sum + (p.availableSlots || 0), 0)
+      : Math.max(0, (catCourse.totalCapacity || 50) - catCourse.enrolledStudents);
+
     // Sync in classManagement
-    const classCourse = (ERP_DATA.classManagement?.courses || []).find(c => c.id === 'CRS-ENG' || c.name.toLowerCase().includes('english'));
-    if (classCourse) {
-      const classPkg = (classCourse.packages || []).find(p => p.packageKey === pkgKey || p.name.toLowerCase() === pkgKey);
+    const classCourse = (ERP_DATA.classManagement?.courses || []).find(c => c.id === catCourse.id);
+    if (classCourse && classCourse.packages && pkg) {
+      const classPkg = classCourse.packages.find(p => (p.packageKey || p.name) === (pkg.packageKey || pkg.name));
       if (classPkg) {
         if (classPkg.availableSlots > 0) classPkg.availableSlots -= 1;
         classPkg.enrolled = (classPkg.enrolled || 0) + 1;
-      }
-    }
-  } else {
-    // Other courses (GK Course, Family Zone, Maths Course, etc.)
-    const catCourse = (ERP_DATA.catalogue?.courses || []).find(c => 
-      leadCourseStr.includes(c.name.toLowerCase()) || 
-      leadCourseStr.includes((c.title || '').toLowerCase()) ||
-      (c.id && leadCourseStr.includes(c.id.toLowerCase()))
-    );
-    if (catCourse) {
-      deductedCourseName = catCourse.name || catCourse.title;
-      if (catCourse.availableSlots > 0) {
-        catCourse.availableSlots -= 1;
-      }
-      catCourse.enrolledStudents = (catCourse.enrolledStudents || 0) + 1;
-      remSlots = catCourse.availableSlots;
-      if (catCourse.packages && catCourse.packages.length > 0) {
-        if (catCourse.packages[0].availableSlots > 0) catCourse.packages[0].availableSlots -= 1;
-        catCourse.packages[0].enrolledStudents = (catCourse.packages[0].enrolledStudents || 0) + 1;
       }
     }
   }
@@ -8209,8 +8420,8 @@ function handleCRMAdmissionSlotDeduction(lead) {
         id: `WST-${2000 + ERP_DATA.classManagement.students.length + 1}`,
         name: lead.name,
         phone: lead.phone,
-        course: lead.coursePackage || 'Communicative English',
-        batch: deductedPkgName ? `ENG-${deductedPkgName.slice(0, 3).toUpperCase()}-01` : 'CRS-01',
+        course: lead.coursePackage || deductedCourseName,
+        batch: deductedPkgName ? `${(catCourse?.id || 'BAT').slice(0, 3)}-${deductedPkgName.slice(0, 3).toUpperCase()}-01` : 'BAT-01',
         admissionDate: new Date().toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }),
         feeTotal: 2000,
         feePaid: 2000,
@@ -8231,17 +8442,22 @@ function handleCRMAdmissionSlotDeduction(lead) {
     }
   }
 
+  if (typeof saveDatabase === 'function') {
+    saveDatabase();
+  }
+
   // 3. Mentor Capacity Check
   const mentorCheck = checkMentorSlotAvailability();
 
   // 4. Cross-Module UI Sync
   syncCommunicativeEnglishCardSlots();
   populateCatalogueView();
+  renderClassCoursePackages();
   if (typeof filterClassStudents === 'function') filterClassStudents();
   if (typeof populateClassManagementView === 'function') populateClassManagementView();
 
   const pkgLabel = deductedPkgName ? ` (${deductedPkgName})` : '';
-  showToastNotification(`ðŸŽ‰ Admission Confirmed for "${lead.name}"! 1 seat deducted from ${deductedCourseName}${pkgLabel}. Remaining slots: ${remSlots}. Mentor capacity verified (${mentorCheck.totalOpenMentorBatchSlots} batch slots open).`);
+  showToastNotification(`🎉 Admission Confirmed for "${lead.name}"! 1 seat deducted from ${deductedCourseName}${pkgLabel}. Remaining slots: ${remSlots}. Mentor capacity verified (${mentorCheck.totalOpenMentorBatchSlots} batch slots open).`);
 }
 
 // 9. WAYBOSS AI EXECUTIVE CO-PILOT ENGINE FOR NASIM V

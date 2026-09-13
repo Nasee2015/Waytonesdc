@@ -950,6 +950,33 @@ let ERP_DATA = getInitialCleanSchema();
 // Persistence Methods
 function sanitizeAndEnforcePermissions(data) {
   if (!data) return;
+
+  // Scrub legacy demo courses if any exist in stored cache
+  const demoCourseIds = ['CRS-ENG', 'CRS-GK', 'CRS-FAM', 'CRS-MTH', 'CRS-01'];
+  const demoCourseNames = ['communicative english', 'gk course', 'family zone', 'maths course'];
+
+  if (data.catalogue && Array.isArray(data.catalogue.courses)) {
+    data.catalogue.courses = data.catalogue.courses.filter(c => {
+      const idMatch = c.id && demoCourseIds.includes(c.id);
+      const nameMatch = (c.name || c.title || '').toLowerCase();
+      const isDemoName = demoCourseNames.some(d => nameMatch.includes(d));
+      return !(idMatch || isDemoName);
+    });
+  } else if (!data.catalogue) {
+    data.catalogue = { courses: [], packages: [], kpis: { totalCourses: 0, totalPackages: 0, availableSlots: 0, runRateFormatted: "₹0" } };
+  }
+
+  if (data.classManagement && Array.isArray(data.classManagement.courses)) {
+    data.classManagement.courses = data.classManagement.courses.filter(c => {
+      const idMatch = c.id && demoCourseIds.includes(c.id);
+      const nameMatch = (c.name || c.title || '').toLowerCase();
+      const isDemoName = demoCourseNames.some(d => nameMatch.includes(d));
+      return !(idMatch || isDemoName);
+    });
+  } else if (data.classManagement) {
+    data.classManagement.courses = [];
+  }
+
   if (!data.hrm) data.hrm = {};
   if (!data.hrm.employees || data.hrm.employees.length === 0) {
     data.hrm.employees = getDefaultEmployees();
