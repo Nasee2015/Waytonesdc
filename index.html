@@ -1955,6 +1955,47 @@
               </div>
             </div>
 
+            <!-- List of unscheduled students (Awaiting Batch Allocation) -->
+            <div class="glass-card data-table-card" id="class-unscheduled-students-card" style="margin-bottom: 24px;">
+              <div class="table-header-group" style="flex-wrap: wrap; gap: 12px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700; font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid #fde68a;">AWAITING BATCH ALLOCATION</span>
+                    <h3 style="margin: 0; font-size: 16px; color:#0f1419;">List of unscheduled students</h3>
+                  </div>
+                  <p style="font-size: 12px; color: #4b5563; margin-top: 3px;">Admitted students from Admissions / Telecalling awaiting batch cohort scheduling</p>
+                </div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span class="badge-pista" id="unscheduled-students-count-badge">0 Students</span>
+                  <button class="btn-primary-ai" onclick="openAddToBatchModal()" style="padding: 6px 14px; font-size: 12.5px; display: inline-flex; align-items: center; gap: 6px;">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+                    + Add to Batch
+                  </button>
+                </div>
+              </div>
+              <div style="overflow-x: auto;">
+                <table class="custom-table">
+                  <thead>
+                    <tr>
+                      <th>Name</th>
+                      <th>Phone number</th>
+                      <th>Class</th>
+                      <th>Status</th>
+                      <th>Admission taker</th>
+                      <th>Course</th>
+                      <th>Package</th>
+                      <th>Pending fees</th>
+                      <th>Special concerns</th>
+                      <th style="text-align: center;">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody id="class-unscheduled-students-tbody">
+                    <!-- Populated dynamically by app.js via renderUnscheduledStudentsList() -->
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
             <!-- Active Cohort Cards -->
             <div>
               <div class="table-header-group" style="margin-bottom:12px;">
@@ -5332,35 +5373,41 @@
           </div>
         </div>
 
-        <!-- 3. Course Package (Not required / Optional) & 4. Status (Default: For Cold Call) -->
+        <!-- 3. Class & 4. Status (Cold Call, For assessment, For Demo Class, Followup, Admission, Not Intrested, Not attended) -->
         <div class="form-grid-2">
           <div class="form-field">
-            <label>Course Package <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Not required)</span></label>
+            <label>Class <span style="color:var(--accent-pista-bright);">*</span></label>
+            <input type="text" id="manual-class" placeholder="Enter student class (10th, 12th, Degree, etc.)" required autocomplete="off">
+          </div>
+          <div class="form-field">
+            <label>Status <span style="font-size:10px; color:var(--accent-pista); text-transform:none;">(Default: Cold Call)</span></label>
+            <select id="manual-status">
+              <option value="Cold Call" selected>Cold Call</option>
+              <option value="For assessment">For assessment</option>
+              <option value="For Demo Class">For Demo Class</option>
+              <option value="Followup">Followup</option>
+              <option value="Admission">Admission</option>
+              <option value="Not Intrested">Not Intrested</option>
+              <option value="Not attended">Not attended</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Optional Course & Telecaller assignment -->
+        <div class="form-grid-2">
+          <div class="form-field">
+            <label>Course Package <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Optional)</span></label>
             <select id="manual-course">
               <option value="">Select Course Package (Optional)</option>
             </select>
           </div>
           <div class="form-field">
-            <label>Status <span style="font-size:10px; color:var(--accent-pista); text-transform:none;">(Default: For Cold Call)</span></label>
-            <select id="manual-status">
-              <option value="For Cold Call" selected>For Cold Call</option>
-              <option value="For Demo">For Demo</option>
-              <option value="For Assessment">For Assessment</option>
-              <option value="Not Interested">Not Interested</option>
-              <option value="Admission">Admission</option>
-              <option value="For Follow-up">For Follow-up</option>
-              <option value="Other">Other</option>
+            <label>Telecaller assign <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Optional)</span></label>
+            <select id="manual-telecaller">
+              <option value="Unassigned">Unassigned (Open Data Pool)</option>
+              <option value="Reception Desk">Reception Desk</option>
             </select>
           </div>
-        </div>
-
-        <!-- 5. Telecaller assign (Not required / Optional) -->
-        <div class="form-field">
-          <label>Telecaller assign <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Not required option)</span></label>
-          <select id="manual-telecaller">
-            <option value="Unassigned">Unassigned (Open Data Pool)</option>
-            <option value="Reception Desk">Reception Desk</option>
-          </select>
         </div>
       </div>
       <div class="modal-footer">
@@ -6956,82 +7003,163 @@
   <!-- TELECALLER WORKSPACE & ROLE MANAGEMENT MODALS            -->
   <!-- ======================================================== -->
 
-  <!-- 1. Simulated Live Telecaller Dialer Modal -->
+  <!-- 1. Calling Report Console Modal -->
   <div class="modal-overlay" id="modal-telecaller-call">
-    <div class="modal-content" style="max-width: 540px; width: 95vw;">
+    <div class="modal-content" style="max-width: 580px; width: 95vw;">
       <div class="modal-header" style="background:#f9faf7; border-bottom:1.5px solid #dbe2d6;">
         <div>
-          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">WAYTONE DIALER CONSOLE</span>
-          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;" id="tc-dialer-student-name">Calling Lead...</h3>
+          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">CALLING REPORT &amp; TELECALLER CONSOLE</span>
+          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;" id="tc-dialer-student-name">Calling Report</h3>
         </div>
-        <button class="modal-close-btn" onclick="closeModal('modal-telecaller-call')">&#10005;</button>
+        <button class="modal-close-btn" onclick="hangupAndCloseCall()">✕</button>
       </div>
-      <div class="modal-body" style="padding:22px;">
-        <div style="text-align:center; padding:10px 0;">
-          <div style="font-size:14px; color:#5e6d7e;" id="tc-dialer-course-pkg">-</div>
-          <div style="font-size:22px; font-weight:800; color:#0f1419; margin:6px 0;" id="tc-dialer-phone">+91 98450 11234</div>
-          <div style="display:inline-flex; align-items:center; gap:8px; background:#e8f5e9; padding:4px 14px; border-radius:14px; border:1px solid #c8e6c9;">
+      <div class="modal-body" style="padding:20px;">
+        <!-- Live Call Timer Banner -->
+        <div style="display:flex; align-items:center; justify-content:space-between; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; padding:8px 14px; margin-bottom:16px;">
+          <div style="display:flex; align-items:center; gap:8px;">
             <span class="pulse-dot"></span>
-            <span style="font-size:13px; font-weight:700; color:#2e7d32;" id="tc-dialer-call-timer">00:00</span>
+            <span style="font-size:12.5px; font-weight:700; color:#166534;">Call in Progress</span>
+          </div>
+          <span style="font-size:14px; font-weight:800; color:#166534; font-family:monospace;" id="tc-dialer-call-timer">00:00</span>
+        </div>
+
+        <!-- Student Basic Information Form -->
+        <!-- Name (Editable), Phone number (Prefilled), Class (Prefilled), Status (Editable) -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">
+              Name <span style="font-size:10.5px; color:#6b8e4e; font-weight:500;">(Editable)</span>
+            </label>
+            <input type="text" id="tc-calling-name" class="form-input" style="width:100%; font-size:12.5px; font-weight:600; padding:7px 10px;" placeholder="Student Name" required>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">
+              Phone number <span style="font-size:10.5px; color:#64748b; font-weight:400;">(Prefilled)</span>
+            </label>
+            <input type="text" id="tc-calling-phone" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px; background:#f8fafc; color:#475569;" readonly>
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">
+              Class <span style="font-size:10.5px; color:#64748b; font-weight:400;">(Prefilled)</span>
+            </label>
+            <input type="text" id="tc-calling-class" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px; background:#f8fafc; color:#475569;" readonly>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">
+              Status <span style="font-size:10.5px; color:#6b8e4e; font-weight:500;">(Editable)</span>
+            </label>
+            <select id="tc-calling-status" class="form-input" style="width:100%; font-size:12.5px; font-weight:600; padding:7px 10px;" onchange="onCallingStatusChange(this.value)">
+              <option value="Cold Call">Cold Call</option>
+              <option value="For assessment">For assessment</option>
+              <option value="For Demo Class">For Demo Class</option>
+              <option value="Followup">Followup</option>
+              <option value="Admission">Admission</option>
+              <option value="Not Intrested">Not Intrested</option>
+              <option value="Not attended">Not attended</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- DYNAMIC SUBFORM 1: When Status is "Admission" -->
+        <div id="tc-calling-admission-section" style="display:none; background:#f0fdf4; border:1.5px solid #86efac; border-radius:10px; padding:16px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:12px;">
+            <span style="font-size:16px;">🎓</span>
+            <strong style="font-size:13px; color:#166534;">Admission Enrollment &amp; Fee Details</strong>
           </div>
           
-          <!-- Audio Waveform Visualizer -->
-          <div class="waveform-bars">
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
-            <div class="waveform-bar"></div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Select Course :-</label>
+              <select id="tc-calling-course" class="form-input" style="width:100%; font-size:12px; padding:6px 10px; background:#ffffff;" onchange="onCallingCourseChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Select Package :-</label>
+              <select id="tc-calling-package" class="form-input" style="width:100%; font-size:12px; padding:6px 10px; background:#ffffff;" onchange="onCallingPackageChange()">
+                <!-- Populated dynamically -->
+              </select>
+            </div>
           </div>
-        </div>
 
-        <!-- Quick Outcome Selection -->
-        <div style="margin-top:10px;">
-          <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:6px;">Call Outcome:</label>
-          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:8px;">
-            <button type="button" class="btn-secondary" style="font-size:12px; padding:7px;" onclick="selectCallOutcome('Admission Confirmed')">
-              &#127891; Admission Confirmed
-            </button>
-            <button type="button" class="btn-secondary" style="font-size:12px; padding:7px;" onclick="selectCallOutcome('Interested - Callback')">
-              &#11088; Interested - Callback
-            </button>
-            <button type="button" class="btn-secondary" style="font-size:12px; padding:7px;" onclick="selectCallOutcome('Booked Demo Class')">
-              &#128197; Booked Demo Class
-            </button>
-            <button type="button" class="btn-secondary" style="font-size:12px; padding:7px;" onclick="selectCallOutcome('Not Interested')">
-              &#128683; Not Interested
-            </button>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Fees :- <span style="font-size:10px; color:#166534; font-weight:normal;">(When select package fees automaticaly come)</span></label>
+              <input type="number" id="tc-calling-fees" class="form-input" style="width:100%; font-size:12.5px; font-weight:700; background:#f8fafc; color:#1e293b; padding:6px 10px;" readonly placeholder="0">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Paid :-</label>
+              <input type="number" id="tc-calling-paid" class="form-input" style="width:100%; font-size:12.5px; padding:6px 10px; background:#ffffff;" min="0" placeholder="Enter amount paid" oninput="calculateCallingPendingFees()">
+            </div>
           </div>
-          <input type="hidden" id="tc-dialer-selected-outcome" value="Interested - Callback">
-        </div>
 
-        <!-- Follow-up Scheduling -->
-        <div style="margin-top:14px; display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Discount :-</label>
+              <input type="number" id="tc-calling-discount" class="form-input" style="width:100%; font-size:12.5px; padding:6px 10px; background:#ffffff;" min="0" placeholder="Enter discount amount" oninput="calculateCallingPendingFees()">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Pending :-</label>
+              <input type="number" id="tc-calling-pending" class="form-input" style="width:100%; font-size:12.5px; font-weight:700; background:#fffbeb; color:#b45309; padding:6px 10px;" readonly placeholder="0">
+            </div>
+          </div>
+
           <div>
-            <label style="font-size:11.5px; font-weight:600; color:#374151;">Next Follow-up Date:</label>
-            <input type="date" id="tc-dialer-followup-date" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
-          </div>
-          <div>
-            <label style="font-size:11.5px; font-weight:600; color:#374151;">Follow-up Time:</label>
-            <input type="time" id="tc-dialer-followup-time" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
+            <label style="font-size:11.5px; font-weight:700; color:#1f2937; display:block; margin-bottom:4px;">Special Concern :</label>
+            <textarea id="tc-calling-special-concern" rows="2" class="form-input" style="width:100%; font-size:12px; padding:6px 10px; background:#ffffff;" placeholder="Enter any special concerns, batch preferences, or student requests..."></textarea>
           </div>
         </div>
 
-        <!-- Telecaller Call Notes -->
-        <div style="margin-top:14px;">
-          <label style="font-size:11.5px; font-weight:600; color:#374151;">Call Notes & Observations (AI Scored):</label>
-          <textarea id="tc-dialer-notes" rows="3" class="form-input" style="width:100%; font-size:12px; padding:8px; line-height:1.4;" placeholder="Enter call notes, discussed requirements, positive response indicators, or follow-up details..."></textarea>
+        <!-- DYNAMIC SUBFORM 2: When Status is "Not Intrested" -->
+        <div id="tc-calling-not-interested-section" style="display:none; background:#fef2f2; border:1.5px solid #fca5a5; border-radius:10px; padding:16px; margin-bottom:14px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:10px;">
+            <span style="font-size:16px;">🛑</span>
+            <strong style="font-size:13px; color:#991b1b;">Not Interested Reason</strong>
+          </div>
+          <div>
+            <label style="font-size:11.5px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Reason Options :-</label>
+            <select id="tc-calling-not-interested-reason" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px; background:#ffffff;" onchange="onCallingNotInterestedReasonChange(this.value)">
+              <option value="time Issue">time Issue</option>
+              <option value="Father permission">Father permission</option>
+              <option value="Student not intrested">Student not intrested</option>
+              <option value="Fees">Fees</option>
+              <option value="other ( Fill specific )">other ( Fill specific )</option>
+            </select>
+          </div>
+          <div id="tc-calling-not-interested-other-wrap" style="display:none; margin-top:10px;">
+            <label style="font-size:11.5px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Fill specific :-</label>
+            <input type="text" id="tc-calling-not-interested-other" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px; background:#ffffff;" placeholder="Fill specific reason details...">
+          </div>
+        </div>
+
+        <!-- General Follow-up & Call Notes -->
+        <div id="tc-calling-general-notes-wrap">
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
+            <div>
+              <label style="font-size:11.5px; font-weight:600; color:#374151;">Next Follow-up Date:</label>
+              <input type="date" id="tc-dialer-followup-date" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
+            </div>
+            <div>
+              <label style="font-size:11.5px; font-weight:600; color:#374151;">Follow-up Time:</label>
+              <input type="time" id="tc-dialer-followup-time" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Call Notes &amp; Observations:</label>
+            <textarea id="tc-dialer-notes" rows="2" class="form-input" style="width:100%; font-size:12px; padding:7px 10px; line-height:1.4;" placeholder="Enter call discussion notes or observations..."></textarea>
+          </div>
         </div>
       </div>
       <div class="modal-footer" style="justify-content:space-between;">
         <button class="btn-secondary" style="color:#b91c1c;" onclick="hangupAndCloseCall()">
-          &#128308; End Call
+          🔴 End Call &amp; Close
         </button>
         <div style="display:flex; gap:8px;">
           <button class="btn-primary-ai" onclick="saveTelecallerCallLog()">
-            &#10003; Save & Log Call
+            ✓ Save Calling Report
           </button>
         </div>
       </div>
@@ -7316,13 +7444,32 @@
 
             <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
               <div>
-                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Course / Program *</label>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Class *</label>
+                <input type="text" id="tc-upload-class" class="form-input" required placeholder="Enter student class (10th, 12th, etc.)" style="width:100%; font-size:12.5px; padding:7px 10px;">
+              </div>
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Status *</label>
+                <select id="tc-upload-status" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
+                  <option value="Cold Call" selected>Cold Call</option>
+                  <option value="For assessment">For assessment</option>
+                  <option value="For Demo Class">For Demo Class</option>
+                  <option value="Followup">Followup</option>
+                  <option value="Admission">Admission</option>
+                  <option value="Not Intrested">Not Intrested</option>
+                  <option value="Not attended">Not attended</option>
+                </select>
+              </div>
+            </div>
+
+            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
+              <div>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Course / Program</label>
                 <select id="tc-upload-course" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
                   <option value="">Select Course</option>
                 </select>
               </div>
               <div>
-                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Lead Source *</label>
+                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Lead Source</label>
                 <select id="tc-upload-source" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
                   <option value="Google Performance Ads">Google Performance Ads</option>
                   <option value="College Campus Drive" selected>College Campus Drive</option>
@@ -8050,6 +8197,79 @@
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeModal('modal-mentor-student-attendance-history')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Add to Batch (Academic Batch Allocation) -->
+  <div class="modal-overlay" id="modal-add-to-batch">
+    <div class="modal-content" style="max-width: 640px; width: 95vw;">
+      <div class="modal-header" style="background:#f9faf7; border-bottom:1.5px solid #dbe2d6;">
+        <div>
+          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">ACADEMIC OPERATIONS</span>
+          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;">+ Add to Batch</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('modal-add-to-batch')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <!-- Batch name (Only required field) -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12.5px; font-weight:700; color:#0f1419; display:block; margin-bottom:4px;">
+            Batch name <span style="color:#dc2626;">* (Only required field)</span>
+          </label>
+          <input type="text" id="add-batch-name" class="form-input" style="width:100%; font-size:13px; font-weight:600; padding:8px 12px;" placeholder="Enter batch name" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Course :</label>
+            <select id="add-batch-course" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onAddToBatchCourseChange()">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Package :</label>
+            <select id="add-batch-package" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onAddToBatchPackageChange()">
+              <!-- Populated dynamically -->
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Assign mentor :</label>
+          <select id="add-batch-mentor" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
+            <!-- Populated dynamically -->
+          </select>
+        </div>
+
+        <!-- Add students selection -->
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <label style="font-size:12px; font-weight:700; color:#0f1419;">Add students :</label>
+            <span style="font-size:11px; color:#64748b;">Select students from unscheduled list</span>
+          </div>
+          <div id="add-batch-students-container" style="max-height:170px; overflow-y:auto; border:1px solid #dbe2d6; border-radius:8px; padding:10px; background:#fafbfa; display:flex; flex-direction:column; gap:8px;">
+            <!-- Populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Metric badges: Students count & Pending slots -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f4f6f2; border:1px solid #dbe2d6; border-radius:8px; padding:12px 16px;">
+          <div>
+            <span style="font-size:11px; color:#4b5563; font-weight:600; text-transform:uppercase;">Students count :</span>
+            <div style="font-size:20px; font-weight:800; color:#0f1419;" id="add-batch-students-count">0</div>
+          </div>
+          <div>
+            <span style="font-size:11px; color:#4b5563; font-weight:600; text-transform:uppercase;">Pending slots :</span>
+            <div style="font-size:20px; font-weight:800; color:#6b8e4e;" id="add-batch-pending-slots">30</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-add-to-batch')">Cancel</button>
+        <button type="button" class="btn-primary-ai" onclick="submitAddToBatch()">
+          ✓ Create Batch &amp; Assign Students
+        </button>
       </div>
     </div>
   </div>

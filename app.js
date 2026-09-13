@@ -1741,44 +1741,113 @@ function confirmPhotoImport() {
 }
 
 // C. Manual Lead Entry
-// Fields: Name, Phone Number, Course Package (optional), Status (Default: For Cold Call), Telecaller assign (optional)
-// Uploader: Automatically assigned to Nasim v (CEO)
+// Fields: Name, Phone Number, Class, Status (Cold Call, For assessment, For Demo Class, Followup, Admission, Not Intrested, Not attended)
 function submitManualLead() {
   const name = document.getElementById('manual-name')?.value.trim();
   const phone = document.getElementById('manual-phone')?.value.trim();
+  const studentClass = document.getElementById('manual-class')?.value.trim();
   const course = document.getElementById('manual-course')?.value || '';
-  const status = document.getElementById('manual-status')?.value || 'For Cold Call';
+  const status = document.getElementById('manual-status')?.value || 'Cold Call';
   const telecaller = document.getElementById('manual-telecaller')?.value || 'Unassigned';
-  const uploader = CURRENT_USER.name; // Automatically assigned to Nasim v
+  const uploader = CURRENT_USER?.name || 'Nasim v';
 
   if (!name || !phone) {
     alert("Please fill in both Name and Phone Number.");
     return;
   }
+  if (!studentClass) {
+    alert("Please enter student Class.");
+    return;
+  }
 
-  const newId = `WLD-${1000 + ERP_DATA.crm.dataPool.length + 1}`;
-  ERP_DATA.crm.dataPool.unshift({
+  const newId = `WLD-${1000 + (ERP_DATA.crm?.dataPool?.length || 0) + 1}`;
+  const leadObj = {
     id: newId,
     name: name,
     phone: phone,
-    coursePackage: course,
+    class: studentClass,
+    coursePackage: course || 'General Skill Track',
     status: status,
     telecaller: telecaller,
     uploader: uploader,
     dateAdded: "Just now",
     leadSource: "Manual Ingestion"
+  };
+
+  if (!ERP_DATA.crm) ERP_DATA.crm = {};
+  if (!ERP_DATA.crm.dataPool) ERP_DATA.crm.dataPool = [];
+  ERP_DATA.crm.dataPool.unshift(leadObj);
+
+  if (!ERP_DATA.crmLeads) ERP_DATA.crmLeads = [];
+  ERP_DATA.crmLeads.unshift({
+    id: newId,
+    name: name,
+    phone: phone,
+    class: studentClass,
+    coursePackage: course || 'General Skill Track',
+    status: status,
+    date: 'Today',
+    priority: 'Normal'
   });
+
+  // Also push to Telecaller callList so counselor can immediately dial and log
+  if (!ERP_DATA.telecaller) ERP_DATA.telecaller = {};
+  if (!ERP_DATA.telecaller.callList) ERP_DATA.telecaller.callList = [];
+  ERP_DATA.telecaller.callList.unshift({
+    id: `TC-${Math.floor(1000 + Math.random() * 9000)}`,
+    leadId: newId,
+    studentName: name,
+    phone: phone,
+    class: studentClass,
+    course: course ? course.split('-')[0].trim() : 'General Skill Track',
+    package: course ? (course.split('-')[1] || 'Standard').trim() : 'Standard',
+    status: status,
+    priority: 'Normal',
+    lastCalled: 'Never',
+    nextFollowup: 'Today',
+    notes: `Added with class ${studentClass}`
+  });
+
+  // If status is Admission, add directly to Unscheduled Students in Class Management!
+  if (status === 'Admission') {
+    if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+    if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+    ERP_DATA.classManagement.students.unshift({
+      id: `WST-ADM-${Date.now().toString().slice(-4)}`,
+      name: name,
+      phone: phone,
+      class: studentClass,
+      status: 'Admission',
+      admissionTaker: uploader,
+      course: course || 'General Skill Track',
+      package: 'Standard Package',
+      totalFee: 25000,
+      fees: 25000,
+      paidFee: 0,
+      discount: 0,
+      pendingFees: 25000,
+      specialConcerns: '—',
+      isScheduled: false,
+      batch: 'Unscheduled',
+      enrolledDate: new Date().toLocaleDateString('en-GB')
+    });
+    if (typeof renderUnscheduledStudentsList === 'function') {
+      renderUnscheduledStudentsList();
+    }
+  }
 
   // Reset form fields to defaults
   document.getElementById('manual-name').value = '';
   document.getElementById('manual-phone').value = '';
-  document.getElementById('manual-course').value = '';
-  document.getElementById('manual-status').value = 'For Cold Call';
-  document.getElementById('manual-telecaller').value = 'Unassigned';
+  if (document.getElementById('manual-class')) document.getElementById('manual-class').value = '';
+  if (document.getElementById('manual-course')) document.getElementById('manual-course').value = '';
+  if (document.getElementById('manual-status')) document.getElementById('manual-status').value = 'Cold Call';
+  if (document.getElementById('manual-telecaller')) document.getElementById('manual-telecaller').value = 'Unassigned';
 
   closeModal('modal-manual-entry');
-  populateCRMView();
-  alert(`Lead "${name}" (${phone}) successfully saved to the Data Pool!\nUploader: ${uploader} (CEO)\nStatus: ${status}`);
+  if (typeof populateCRMView === 'function') populateCRMView();
+  if (typeof renderTelecallerCallList === 'function') renderTelecallerCallList();
+  showToastNotification(`✓ Lead "${name}" (${studentClass}) saved with status "${status}"!`);
 }
 
 
@@ -3205,6 +3274,9 @@ function populateClassManagementView() {
   if (kpiFees) kpiFees.textContent = clsData.kpis.feesPendingFormatted || ('₹' + clsData.kpis.feesPending.toLocaleString('en-IN'));
   if (kpiBatches) kpiBatches.textContent = clsData.kpis.activeBatches;
   if (kpiCompleted) kpiCompleted.textContent = clsData.kpis.completedCourses;
+
+  // 1b. Render List of Unscheduled Students
+  renderUnscheduledStudentsList();
 
   // 2. Render Active Cohorts Grid
   const container = document.getElementById('class-cohorts-container');
@@ -9136,7 +9208,40 @@ function switchTelecallerTab(tabId) {
 // ----------------------------------------------------------
 function renderTelecallerCallList(filterStatus = 'All', filterPriority = 'All', searchTerm = '') {
   const tbody = document.getElementById('tc-call-list-tbody');
-  if (!tbody || !ERP_DATA.telecaller?.callList) return;
+  if (!tbody) return;
+  if (!ERP_DATA.telecaller) ERP_DATA.telecaller = {};
+  if (!ERP_DATA.telecaller.callList || ERP_DATA.telecaller.callList.length === 0) {
+    ERP_DATA.telecaller.callList = [
+      {
+        id: 'TC-101',
+        leadId: 'WLD-101',
+        studentName: 'Aarav Sharma',
+        phone: '+91 98450 11234',
+        class: '12th Science',
+        course: 'Full Stack AI & Software Development',
+        package: 'Standard Program',
+        status: 'Cold Call',
+        priority: 'High',
+        lastCalled: 'Never',
+        nextFollowup: 'Today',
+        notes: 'Inquired about skill development curriculum'
+      },
+      {
+        id: 'TC-102',
+        leadId: 'WLD-102',
+        studentName: 'Meera Nair',
+        phone: '+91 97451 22334',
+        class: 'Degree Final Year',
+        course: 'Communicative English & Soft Skills',
+        package: 'Professional Fluency',
+        status: 'For assessment',
+        priority: 'Normal',
+        lastCalled: 'Yesterday',
+        nextFollowup: 'Today',
+        notes: 'Requested assessment and demo schedule'
+      }
+    ];
+  }
 
   const searchInput = document.getElementById('tc-call-search');
   const statusSelect = document.getElementById('tc-status-filter');
@@ -9194,12 +9299,13 @@ function renderTelecallerCallList(filterStatus = 'All', filterPriority = 'All', 
         </td>
         <td>
           <select class="form-input" style="font-size:11.5px; padding:3px 6px; border-radius:12px; font-weight:600; background:${getStatusBgColor(item.status)};" onchange="updateTelecallerCallStatus('${item.id}', this.value)">
-            <option value="For Cold Call" ${item.status === 'For Cold Call' ? 'selected' : ''}>For Cold Call</option>
-            <option value="For Follow-up" ${item.status === 'For Follow-up' ? 'selected' : ''}>For Follow-up</option>
-            <option value="Interested" ${item.status === 'Interested' ? 'selected' : ''}>Interested</option>
-            <option value="For Demo" ${item.status === 'For Demo' ? 'selected' : ''}>For Demo</option>
+            <option value="Cold Call" ${item.status === 'Cold Call' || item.status === 'For Cold Call' ? 'selected' : ''}>Cold Call</option>
+            <option value="For assessment" ${item.status === 'For assessment' ? 'selected' : ''}>For assessment</option>
+            <option value="For Demo Class" ${item.status === 'For Demo Class' || item.status === 'For Demo' ? 'selected' : ''}>For Demo Class</option>
+            <option value="Followup" ${item.status === 'Followup' || item.status === 'For Follow-up' ? 'selected' : ''}>Followup</option>
             <option value="Admission" ${item.status === 'Admission' ? 'selected' : ''}>Admission</option>
-            <option value="Not Interested" ${item.status === 'Not Interested' ? 'selected' : ''}>Not Interested</option>
+            <option value="Not Intrested" ${item.status === 'Not Intrested' || item.status === 'Not Interested' ? 'selected' : ''}>Not Intrested</option>
+            <option value="Not attended" ${item.status === 'Not attended' ? 'selected' : ''}>Not attended</option>
           </select>
         </td>
         <td>
@@ -9242,10 +9348,16 @@ function renderTelecallerCallList(filterStatus = 'All', filterPriority = 'All', 
 function getStatusBgColor(status) {
   switch (status) {
     case 'Admission': return '#e8f5e9';
+    case 'Followup':
     case 'For Follow-up': return '#fff8e1';
-    case 'Interested': return '#e0f2fe';
-    case 'For Demo': return '#f3e8ff';
+    case 'For assessment': return '#f3e8ff';
+    case 'For Demo Class':
+    case 'For Demo': return '#e0f2fe';
+    case 'Not Intrested':
     case 'Not Interested': return '#fee2e2';
+    case 'Not attended': return '#fef3c7';
+    case 'Cold Call':
+    case 'For Cold Call': return '#f3f4f6';
     default: return '#f3f4f6';
   }
 }
@@ -9278,26 +9390,79 @@ function updateTelecallerCallStatus(callId, newStatus) {
   showToastNotification(`Status for ${call.studentName} updated to "${newStatus}"`);
 }
 
+function getAvailableCoursesAndPackages() {
+  let courses = (ERP_DATA.catalogue?.courses && ERP_DATA.catalogue.courses.length > 0)
+    ? ERP_DATA.catalogue.courses
+    : (ERP_DATA.classManagement?.courses || []);
+
+  if (!courses || courses.length === 0) {
+    courses = [
+      {
+        id: 'CRS-AI-01',
+        title: 'Full Stack AI & Software Development',
+        name: 'Full Stack AI & Software Development',
+        packages: [
+          { id: 'PKG-AI-STD', packageKey: 'standard', name: 'Standard Program', fees: 25000, fee: 25000, feeFormatted: '₹25,000', totalSlots: 30, availableSlots: 20 },
+          { id: 'PKG-AI-PRM', packageKey: 'premium', name: 'Premium Job Track', fees: 45000, fee: 45000, feeFormatted: '₹45,000', totalSlots: 20, availableSlots: 15 },
+          { id: 'PKG-AI-BSC', packageKey: 'basic', name: 'Foundational AI', fees: 15000, fee: 15000, feeFormatted: '₹15,000', totalSlots: 40, availableSlots: 30 }
+        ]
+      },
+      {
+        id: 'CRS-ENG-02',
+        title: 'Communicative English & Soft Skills',
+        name: 'Communicative English & Soft Skills',
+        packages: [
+          { id: 'PKG-ENG-AFF', packageKey: 'affordable', name: 'Affordable Package', fees: 600, fee: 600, feeFormatted: '₹600', totalSlots: 50, availableSlots: 35 },
+          { id: 'PKG-ENG-STD', packageKey: 'standard', name: 'Professional Fluency', fees: 3500, fee: 3500, feeFormatted: '₹3,500', totalSlots: 25, availableSlots: 18 }
+        ]
+      }
+    ];
+    if (ERP_DATA.catalogue) ERP_DATA.catalogue.courses = courses;
+  }
+  return courses;
+}
+
 function openTelecallerDialer(callId) {
   const call = (ERP_DATA.telecaller?.callList || []).find(c => c.id === callId);
   if (!call) return;
 
   activeDialerCallId = callId;
   const modal = document.getElementById('modal-telecaller-call');
-  const nameEl = document.getElementById('tc-dialer-student-name');
-  const courseEl = document.getElementById('tc-dialer-course-pkg');
-  const phoneEl = document.getElementById('tc-dialer-phone');
+  const titleEl = document.getElementById('tc-dialer-student-name');
+  const nameInput = document.getElementById('tc-calling-name');
+  const phoneInput = document.getElementById('tc-calling-phone');
+  const classInput = document.getElementById('tc-calling-class');
+  const statusSelect = document.getElementById('tc-calling-status');
   const notesEl = document.getElementById('tc-dialer-notes');
   const timerEl = document.getElementById('tc-dialer-call-timer');
-  const outcomeInput = document.getElementById('tc-dialer-selected-outcome');
   const dateInput = document.getElementById('tc-dialer-followup-date');
   const timeInput = document.getElementById('tc-dialer-followup-time');
 
-  if (nameEl) nameEl.textContent = `Calling ${call.studentName}`;
-  if (courseEl) courseEl.textContent = `${call.course} • ${call.package || 'General'}`;
-  if (phoneEl) phoneEl.textContent = call.phone;
+  // Resolve student class
+  let studentClass = call.class || call.studentClass || '';
+  if (!studentClass) {
+    const crmLead = (ERP_DATA.crmLeads || []).find(l => 
+      l.id === call.leadId || 
+      (l.phone && l.phone.replace(/\s+/g, '') === call.phone.replace(/\s+/g, ''))
+    );
+    if (crmLead && crmLead.class) studentClass = crmLead.class;
+  }
+  if (!studentClass) studentClass = '10th';
+
+  if (titleEl) titleEl.textContent = `Calling Report: ${call.studentName}`;
+  if (nameInput) nameInput.value = call.studentName || '';
+  if (phoneInput) phoneInput.value = call.phone || '';
+  if (classInput) classInput.value = studentClass;
   if (notesEl) notesEl.value = call.notes || '';
-  if (outcomeInput) outcomeInput.value = 'Interested - Callback';
+
+  const initialStatus = call.status || 'Cold Call';
+  if (statusSelect) {
+    statusSelect.value = initialStatus;
+    if (!statusSelect.value) statusSelect.value = 'Cold Call';
+  }
+
+  // Trigger dynamic section display based on status
+  onCallingStatusChange(statusSelect ? statusSelect.value : initialStatus);
 
   const todayStr = new Date().toISOString().split('T')[0];
   if (dateInput) dateInput.value = todayStr;
@@ -9313,25 +9478,98 @@ function openTelecallerDialer(callId) {
     if (timerEl) timerEl.textContent = `${mins}:${secs}`;
   }, 1000);
 
-  if (modal) modal.classList.add('active');
+  openModal('modal-telecaller-call');
 }
 
-function selectCallOutcome(outcome) {
-  const outcomeInput = document.getElementById('tc-dialer-selected-outcome');
-  if (outcomeInput) outcomeInput.value = outcome;
+function onCallingStatusChange(status) {
+  const admissionSec = document.getElementById('tc-calling-admission-section');
+  const notInterestedSec = document.getElementById('tc-calling-not-interested-section');
 
-  const btns = document.querySelectorAll('#modal-telecaller-call .btn-secondary');
-  btns.forEach(btn => {
-    if (btn.textContent.includes(outcome)) {
-      btn.style.background = '#6b8e4e';
-      btn.style.color = '#ffffff';
-      btn.style.borderColor = '#547339';
-    } else if (!btn.textContent.includes('End Call')) {
-      btn.style.background = '';
-      btn.style.color = '';
-      btn.style.borderColor = '';
+  if (status === 'Admission') {
+    if (admissionSec) admissionSec.style.display = 'block';
+    if (notInterestedSec) notInterestedSec.style.display = 'none';
+
+    // Populate Courses dropdown
+    const courses = getAvailableCoursesAndPackages();
+    const courseSelect = document.getElementById('tc-calling-course');
+    if (courseSelect) {
+      courseSelect.innerHTML = courses.map(c => `
+        <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">${escapeHTML(c.name || c.title)}</option>
+      `).join('');
     }
-  });
+    onCallingCourseChange();
+  } else if (status === 'Not Intrested') {
+    if (admissionSec) admissionSec.style.display = 'none';
+    if (notInterestedSec) notInterestedSec.style.display = 'block';
+    const reasonSelect = document.getElementById('tc-calling-not-interested-reason');
+    if (reasonSelect) {
+      onCallingNotInterestedReasonChange(reasonSelect.value);
+    }
+  } else {
+    if (admissionSec) admissionSec.style.display = 'none';
+    if (notInterestedSec) notInterestedSec.style.display = 'none';
+  }
+}
+
+function onCallingCourseChange() {
+  const courseSelect = document.getElementById('tc-calling-course');
+  const pkgSelect = document.getElementById('tc-calling-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', fees: 25000, fee: 25000, totalSlots: 30, availableSlots: 30 },
+    { name: 'Premium Job Track', fees: 45000, fee: 45000, totalSlots: 20, availableSlots: 20 },
+    { name: 'Basic Foundational', fees: 15000, fee: 15000, totalSlots: 40, availableSlots: 40 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-fee="${p.fees || p.fee || 0}">${escapeHTML(p.name)}</option>
+  `).join('');
+
+  onCallingPackageChange();
+}
+
+function onCallingPackageChange() {
+  const pkgSelect = document.getElementById('tc-calling-package');
+  const feesInput = document.getElementById('tc-calling-fees');
+  if (!pkgSelect || !feesInput) return;
+
+  const selectedOption = pkgSelect.selectedOptions[0];
+  const fee = selectedOption ? parseInt(selectedOption.getAttribute('data-fee') || 0) : 0;
+  feesInput.value = fee;
+
+  calculateCallingPendingFees();
+}
+
+function calculateCallingPendingFees() {
+  const feesInput = document.getElementById('tc-calling-fees');
+  const paidInput = document.getElementById('tc-calling-paid');
+  const discountInput = document.getElementById('tc-calling-discount');
+  const pendingInput = document.getElementById('tc-calling-pending');
+
+  const fees = Number(feesInput?.value) || 0;
+  const paid = Number(paidInput?.value) || 0;
+  const discount = Number(discountInput?.value) || 0;
+  const pending = Math.max(0, fees - paid - discount);
+
+  if (pendingInput) {
+    pendingInput.value = pending;
+  }
+}
+
+function onCallingNotInterestedReasonChange(reason) {
+  const otherWrap = document.getElementById('tc-calling-not-interested-other-wrap');
+  if (otherWrap) {
+    if (reason === 'other ( Fill specific )') {
+      otherWrap.style.display = 'block';
+    } else {
+      otherWrap.style.display = 'none';
+    }
+  }
 }
 
 function hangupAndCloseCall() {
@@ -9347,47 +9585,163 @@ function saveTelecallerCallLog() {
 
   clearInterval(dialerInterval);
 
+  const nameInput = document.getElementById('tc-calling-name');
+  const statusSelect = document.getElementById('tc-calling-status');
   const notesEl = document.getElementById('tc-dialer-notes');
-  const outcomeEl = document.getElementById('tc-dialer-selected-outcome');
   const dateEl = document.getElementById('tc-dialer-followup-date');
   const timeEl = document.getElementById('tc-dialer-followup-time');
 
-  const outcome = outcomeEl?.value || 'Interested - Callback';
+  // Only Name and Status are editable
+  const updatedName = (nameInput?.value || '').trim() || call.studentName;
+  const status = statusSelect?.value || 'Cold Call';
   const notesText = notesEl?.value || call.notes;
   const mins = Math.floor(dialerSeconds / 60);
   const secs = dialerSeconds % 60;
   const durationStr = `${mins}m ${secs}s`;
 
+  call.studentName = updatedName;
+  call.status = status;
   call.lastCalled = 'Just now';
   call.notes = notesText;
+
   if (dateEl?.value) {
     call.nextFollowup = `${dateEl.value} ${timeEl?.value || '16:00'}`;
   }
 
-  if (outcome === 'Admission Confirmed') {
-    call.status = 'Admission';
-    call.nextFollowup = 'Completed';
-  } else if (outcome === 'Booked Demo Class') {
-    call.status = 'For Demo';
-  } else if (outcome === 'Interested - Callback') {
-    call.status = 'Interested';
-  } else if (outcome === 'Not Interested') {
-    call.status = 'Not Interested';
-    call.nextFollowup = 'Closed';
-  } else {
-    call.status = 'For Follow-up';
+  // Sync updated name and status to CRM Leads and Data Pool
+  const crmLead = (ERP_DATA.crmLeads || []).find(l => 
+    l.id === call.leadId || 
+    (l.phone && l.phone.replace(/\s+/g, '') === call.phone.replace(/\s+/g, ''))
+  );
+  if (crmLead) {
+    crmLead.name = updatedName;
+    crmLead.status = status;
   }
 
+  const poolLead = (ERP_DATA.crm?.dataPool || []).find(l => 
+    l.id === call.leadId || 
+    (l.phone && l.phone.replace(/\s+/g, '') === call.phone.replace(/\s+/g, ''))
+  );
+  if (poolLead) {
+    poolLead.name = updatedName;
+    poolLead.status = status;
+  }
+
+  if (status === 'Not Intrested') {
+    const reasonSelect = document.getElementById('tc-calling-not-interested-reason');
+    let reason = reasonSelect?.value || 'Not interested';
+    if (reason === 'other ( Fill specific )') {
+      const otherInput = document.getElementById('tc-calling-not-interested-other');
+      reason = (otherInput?.value || '').trim() || 'Other reason';
+    }
+    call.notes = `Not Interested Reason: ${reason}. ${notesText || ''}`.trim();
+    call.nextFollowup = 'Closed';
+  } else if (status === 'Admission') {
+    call.nextFollowup = 'Completed';
+    const courseSelect = document.getElementById('tc-calling-course');
+    const courseName = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || 'Skill Track';
+    const pkgSelect = document.getElementById('tc-calling-package');
+    const packageName = pkgSelect?.value || 'Standard';
+    const fees = Number(document.getElementById('tc-calling-fees')?.value) || 0;
+    const paid = Number(document.getElementById('tc-calling-paid')?.value) || 0;
+    const discount = Number(document.getElementById('tc-calling-discount')?.value) || 0;
+    const pending = Number(document.getElementById('tc-calling-pending')?.value) || 0;
+    const specialConcern = document.getElementById('tc-calling-special-concern')?.value.trim() || '—';
+    const counselorName = getActiveCounselorName() || 'Nasim v';
+
+    // Record in Class Management Unscheduled Students
+    if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+    if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+
+    const studentClass = call.class || document.getElementById('tc-calling-class')?.value || '10th';
+
+    let student = ERP_DATA.classManagement.students.find(s => 
+      (s.phone && s.phone.replace(/\s+/g, '') === call.phone.replace(/\s+/g, '')) ||
+      s.name.toLowerCase() === updatedName.toLowerCase()
+    );
+
+    if (student) {
+      student.name = updatedName;
+      student.phone = call.phone;
+      student.class = studentClass;
+      student.status = 'Admission';
+      student.admissionTaker = counselorName;
+      student.course = courseName;
+      student.package = packageName;
+      student.totalFee = fees;
+      student.fees = fees;
+      student.paidFee = paid;
+      student.discount = discount;
+      student.pendingFees = pending;
+      student.specialConcerns = specialConcern;
+      student.isScheduled = false;
+      student.batch = 'Unscheduled';
+    } else {
+      student = {
+        id: `WST-ADM-${Date.now().toString().slice(-4)}`,
+        name: updatedName,
+        phone: call.phone,
+        class: studentClass,
+        status: 'Admission',
+        admissionTaker: counselorName,
+        course: courseName,
+        package: packageName,
+        totalFee: fees,
+        fees: fees,
+        paidFee: paid,
+        discount: discount,
+        pendingFees: pending,
+        specialConcerns: specialConcern,
+        isScheduled: false,
+        batch: 'Unscheduled',
+        enrolledDate: new Date().toLocaleDateString('en-GB')
+      };
+      ERP_DATA.classManagement.students.unshift(student);
+    }
+
+    // Sync to Telecaller fees collection
+    if (!ERP_DATA.telecaller.feesCollection) ERP_DATA.telecaller.feesCollection = { students: [], kpis: {} };
+    if (!ERP_DATA.telecaller.feesCollection.students) ERP_DATA.telecaller.feesCollection.students = [];
+    let feeRec = ERP_DATA.telecaller.feesCollection.students.find(f => f.phone === call.phone);
+    if (!feeRec) {
+      ERP_DATA.telecaller.feesCollection.students.unshift({
+        id: `FEE-${Math.floor(100 + Math.random() * 900)}`,
+        studentId: student.id,
+        name: updatedName,
+        phone: call.phone,
+        course: courseName,
+        package: packageName,
+        batch: 'Unscheduled',
+        totalFee: fees,
+        paidFee: paid,
+        dueFee: pending,
+        status: pending <= 0 ? 'Paid' : (paid > 0 ? 'Partial' : 'Pending'),
+        lastPaymentDate: 'Today',
+        receiptId: `REC-${Math.floor(1000 + Math.random() * 9000)}`
+      });
+    }
+
+    // Update Telecaller KPIs
+    if (ERP_DATA.telecaller?.kpis) {
+      ERP_DATA.telecaller.kpis.admissionCount = (ERP_DATA.telecaller.kpis.admissionCount || 0) + 1;
+      ERP_DATA.telecaller.kpis.revenueGenerated = (ERP_DATA.telecaller.kpis.revenueGenerated || 0) + paid;
+      ERP_DATA.telecaller.kpis.revenueFormatted = `₹${(ERP_DATA.telecaller.kpis.revenueGenerated).toLocaleString('en-IN')}`;
+    }
+
+    renderUnscheduledStudentsList();
+  }
+
+  // Update Call History
   if (!call.callHistory) call.callHistory = [];
   call.callHistory.unshift({
     time: 'Today ' + new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
     duration: durationStr,
-    outcome: outcome,
-    note: notesText
+    outcome: status,
+    note: call.notes
   });
 
   if (ERP_DATA.telecaller?.kpis) {
-    ERP_DATA.telecaller.kpis.totalCallsDone += 1;
+    ERP_DATA.telecaller.kpis.totalCallsDone = (ERP_DATA.telecaller.kpis.totalCallsDone || 0) + 1;
   }
   const counselor = (ERP_DATA.telecaller?.counselors || []).find(c => c.id === activeCounselorId);
   if (counselor) {
@@ -9395,13 +9749,288 @@ function saveTelecallerCallLog() {
   }
 
   closeModal('modal-telecaller-call');
+  renderTelecallerCallList();
+  showToastNotification(`Calling report saved for ${updatedName} — Status: ${status}`);
+}
 
-  if (outcome === 'Admission Confirmed') {
-    telecallerMarkAdmission(activeDialerCallId);
-  } else {
-    renderTelecallerCallList();
-    showToastNotification(`Call logged for ${call.studentName} (${durationStr}) - Outcome: ${outcome}`);
+// ----------------------------------------------------------
+// 11.2 CLASS MANAGEMENT: UNSCHEDULED STUDENTS & BATCH ALLOCATION
+// ----------------------------------------------------------
+function renderUnscheduledStudentsList() {
+  const tbody = document.getElementById('class-unscheduled-students-tbody');
+  const badge = document.getElementById('unscheduled-students-count-badge');
+  if (!tbody) return;
+
+  if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+  if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+
+  // Filter unscheduled students awaiting batch allocation
+  const unscheduled = ERP_DATA.classManagement.students.filter(s => 
+    (s.status === 'Admission' || s.isAdmission) && 
+    (!s.isScheduled || s.batch === 'Unscheduled' || !s.batch || s.batch === '—')
+  );
+
+  if (badge) {
+    badge.textContent = `${unscheduled.length} Students`;
   }
+
+  if (unscheduled.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="10" style="text-align:center; padding:32px; color:#64748b;">
+          <div style="font-size:24px; margin-bottom:6px;">🎓</div>
+          <div style="font-weight:600; color:#1e293b;">No unscheduled students at this time</div>
+          <div style="font-size:12px; margin-top:2px;">All admitted students are currently allocated to batches. New admissions recorded in Calling Report will appear here automatically.</div>
+        </td>
+      </tr>
+    `;
+    return;
+  }
+
+  tbody.innerHTML = unscheduled.map(s => {
+    const feePendingFormatted = (s.pendingFees !== undefined && s.pendingFees !== null)
+      ? `₹${Number(s.pendingFees).toLocaleString('en-IN')}`
+      : (s.fees ? `₹${Number(s.fees).toLocaleString('en-IN')}` : '₹0');
+
+    return `
+      <tr>
+        <td style="font-weight:700; color:#0f1419;">
+          ${escapeHTML(s.name)}
+        </td>
+        <td style="font-weight:600; color:#2e441f;">
+          ${escapeHTML(s.phone || '—')}
+        </td>
+        <td>
+          <span class="badge" style="background:#f1f5f9; color:#334155; font-weight:600; font-size:11.5px; padding:2px 8px; border-radius:4px;">
+            ${escapeHTML(s.class || '10th')}
+          </span>
+        </td>
+        <td>
+          <span class="badge-pista" style="font-weight:700; font-size:11px; padding:3px 8px;">
+            Admission
+          </span>
+        </td>
+        <td style="color:#374151; font-weight:500;">
+          ${escapeHTML(s.admissionTaker || 'Admissions Counselor')}
+        </td>
+        <td style="color:#1f2937; font-weight:600;">
+          ${escapeHTML(s.course || 'General Skill Track')}
+        </td>
+        <td style="color:#4b5563; font-size:12px;">
+          ${escapeHTML(s.package || 'Standard Package')}
+        </td>
+        <td>
+          <span style="font-weight:700; color:#b45309;">
+            ${escapeHTML(feePendingFormatted)}
+          </span>
+        </td>
+        <td style="max-width:200px; font-size:12px; color:#4b5563;" title="${escapeHTML(s.specialConcerns || '—')}">
+          ${escapeHTML(s.specialConcerns || '—')}
+        </td>
+        <td style="text-align:center;">
+          <button class="btn-primary-ai" style="padding:4px 10px; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;" onclick="openAddToBatchModal('${escapeHTML(s.id)}')">
+            + Add to Batch
+          </button>
+        </td>
+      </tr>
+    `;
+  }).join('');
+}
+
+let addToBatchPreselectedId = null;
+
+function openAddToBatchModal(studentId = null) {
+  addToBatchPreselectedId = studentId;
+  const modal = document.getElementById('modal-add-to-batch');
+  if (!modal) return;
+
+  const nameInput = document.getElementById('add-batch-name');
+  if (nameInput) nameInput.value = '';
+
+  // Populate courses
+  const courses = getAvailableCoursesAndPackages();
+  const courseSelect = document.getElementById('add-batch-course');
+  if (courseSelect) {
+    courseSelect.innerHTML = courses.map(c => `
+      <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">${escapeHTML(c.name || c.title)}</option>
+    `).join('');
+  }
+
+  // Populate package
+  onAddToBatchCourseChange();
+
+  // Populate mentors
+  const mentorSelect = document.getElementById('add-batch-mentor');
+  if (mentorSelect) {
+    const mentors = (ERP_DATA.classManagement?.mentors && ERP_DATA.classManagement.mentors.length > 0)
+      ? ERP_DATA.classManagement.mentors
+      : (typeof getCoordinatorMentors === 'function' ? getCoordinatorMentors() : [
+          { name: 'Dr. Ramesh Kumar', availableSlots: 2 },
+          { name: 'Prof. Sneha Menon', availableSlots: 3 },
+          { name: 'Vikramaditya Roy', availableSlots: 1 }
+        ]);
+    let html = `<option value="Unassigned">Leave Unassigned (Assign Later)</option>`;
+    mentors.forEach(m => {
+      html += `<option value="${escapeHTML(m.name)}">${escapeHTML(m.name)}</option>`;
+    });
+    mentorSelect.innerHTML = html;
+  }
+
+  renderAddToBatchStudentsList();
+  updateAddToBatchSlotCalculation();
+  openModal('modal-add-to-batch');
+}
+
+function renderAddToBatchStudentsList() {
+  const container = document.getElementById('add-batch-students-container');
+  if (!container) return;
+
+  const unscheduled = (ERP_DATA.classManagement?.students || []).filter(s => 
+    (s.status === 'Admission' || s.isAdmission) && 
+    (!s.isScheduled || s.batch === 'Unscheduled' || !s.batch || s.batch === '—')
+  );
+
+  if (unscheduled.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:16px; color:#64748b; font-size:12px;">
+        No unscheduled students available.
+      </div>
+    `;
+    return;
+  }
+
+  container.innerHTML = unscheduled.map(s => {
+    const isChecked = (addToBatchPreselectedId && s.id === addToBatchPreselectedId);
+    return `
+      <label style="display:flex; align-items:center; gap:10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; padding:8px 10px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" class="add-batch-student-cb" value="${escapeHTML(s.id)}" ${isChecked ? 'checked' : ''} onchange="updateAddToBatchSlotCalculation()" style="accent-color:#6b8e4e; width:15px; height:15px;">
+        <div style="flex:1;">
+          <strong style="color:#0f1419;">${escapeHTML(s.name)}</strong>
+          <span style="color:#64748b; margin-left:6px;">Class: ${escapeHTML(s.class || '10th')}</span>
+          <span style="color:#64748b; margin-left:6px;">• ${escapeHTML(s.course || 'Course')}</span>
+        </div>
+        <span style="font-weight:700; color:#b45309;">Pending: ₹${Number(s.pendingFees || 0).toLocaleString('en-IN')}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function onAddToBatchCourseChange() {
+  const courseSelect = document.getElementById('add-batch-course');
+  const pkgSelect = document.getElementById('add-batch-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', fees: 25000, totalSlots: 30, availableSlots: 30 },
+    { name: 'Premium Job Track', fees: 45000, totalSlots: 20, availableSlots: 20 },
+    { name: 'Basic Foundational', fees: 15000, totalSlots: 40, availableSlots: 40 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-capacity="${p.totalSlots || 30}">
+      ${escapeHTML(p.name)} (${p.totalSlots || 30} max capacity)
+    </option>
+  `).join('');
+
+  updateAddToBatchSlotCalculation();
+}
+
+function onAddToBatchPackageChange() {
+  updateAddToBatchSlotCalculation();
+}
+
+function updateAddToBatchSlotCalculation() {
+  const checkboxes = document.querySelectorAll('.add-batch-student-cb:checked');
+  const count = checkboxes.length;
+
+  const countEl = document.getElementById('add-batch-students-count');
+  if (countEl) countEl.textContent = count;
+
+  const pkgSelect = document.getElementById('add-batch-package');
+  const selectedOption = pkgSelect?.selectedOptions[0];
+  const capacity = selectedOption ? parseInt(selectedOption.getAttribute('data-capacity') || 30) : 30;
+
+  const pendingSlots = Math.max(0, capacity - count);
+  const pendingEl = document.getElementById('add-batch-pending-slots');
+  if (pendingEl) pendingEl.textContent = pendingSlots;
+}
+
+function submitAddToBatch() {
+  const nameInput = document.getElementById('add-batch-name');
+  const batchName = (nameInput?.value || '').trim();
+
+  // "Batch name only required"
+  if (!batchName) {
+    alert("Batch name is required. Please specify a batch name.");
+    nameInput?.focus();
+    return;
+  }
+
+  const courseSelect = document.getElementById('add-batch-course');
+  const courseName = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || 'Skill Track';
+  const pkgSelect = document.getElementById('add-batch-package');
+  const packageName = pkgSelect?.value || 'Standard';
+  const mentorSelect = document.getElementById('add-batch-mentor');
+  const mentorName = mentorSelect?.value || 'Unassigned';
+
+  const selectedCheckboxes = document.querySelectorAll('.add-batch-student-cb:checked');
+  const selectedStudentIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+  // Update selected students in ERP_DATA.classManagement.students
+  if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+  if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+
+  selectedStudentIds.forEach(id => {
+    const student = ERP_DATA.classManagement.students.find(s => s.id === id);
+    if (student) {
+      student.isScheduled = true;
+      student.batch = batchName;
+      student.assignedBatch = batchName;
+      student.assignedMentor = mentorName;
+    }
+  });
+
+  // Create new cohort in ERP_DATA.classManagement.cohorts & batches
+  if (!ERP_DATA.classManagement.cohorts) ERP_DATA.classManagement.cohorts = [];
+  if (!ERP_DATA.classManagement.batches) ERP_DATA.classManagement.batches = [];
+
+  const newCohort = {
+    id: `B-${Date.now().toString().slice(-4)}`,
+    code: `B-${batchName.replace(/[^A-Za-z0-9]/g, '').slice(0, 8).toUpperCase() || 'NEW'}`,
+    name: batchName,
+    course: courseName,
+    package: packageName,
+    mentor: mentorName,
+    mentorName: mentorName,
+    studentsCount: selectedStudentIds.length,
+    enrolled: selectedStudentIds.length,
+    capacity: 30,
+    availableSlots: Math.max(0, 30 - selectedStudentIds.length),
+    attendance: '100%',
+    progress: 0,
+    status: 'Active',
+    room: 'Lab 1',
+    schedule: 'Mon, Wed, Fri (10:00 AM - 12:00 PM)'
+  };
+
+  ERP_DATA.classManagement.cohorts.unshift(newCohort);
+  ERP_DATA.classManagement.batches.unshift(newCohort);
+
+  // Update KPI
+  if (ERP_DATA.classManagement.kpis) {
+    ERP_DATA.classManagement.kpis.activeBatches = (ERP_DATA.classManagement.kpis.activeBatches || 0) + 1;
+  }
+
+  closeModal('modal-add-to-batch');
+  renderUnscheduledStudentsList();
+  if (typeof populateClassManagementView === 'function') {
+    populateClassManagementView();
+  }
+  showToastNotification(`✓ Batch "${batchName}" created with ${selectedStudentIds.length} student(s) successfully!`);
 }
 
 function openNextPendingCall() {
@@ -10429,6 +11058,8 @@ function switchTelecallerUploadTab(tabId) {
 function submitTelecallerLeadUpload() {
   const nameInput = document.getElementById('tc-upload-name');
   const phoneInput = document.getElementById('tc-upload-phone');
+  const classInput = document.getElementById('tc-upload-class');
+  const statusSelect = document.getElementById('tc-upload-status');
   const courseInput = document.getElementById('tc-upload-course');
   const sourceInput = document.getElementById('tc-upload-source');
   const notesInput = document.getElementById('tc-upload-notes');
@@ -10436,13 +11067,19 @@ function submitTelecallerLeadUpload() {
 
   const studentName = (nameInput?.value || '').trim();
   const phone = (phoneInput?.value || '').trim();
-  const coursePackage = courseInput?.value || 'Communicative English (Standard Package)';
+  const studentClass = (classInput?.value || '').trim();
+  const status = statusSelect?.value || 'Cold Call';
+  const coursePackage = courseInput?.value || 'General Skill Track';
   const leadSource = sourceInput?.value || 'College Campus Drive';
   const notes = (notesInput?.value || '').trim();
   const isAssignSelf = destInput?.value === 'self';
 
   if (!studentName || !phone) {
     alert("Please enter student name and phone number.");
+    return;
+  }
+  if (!studentClass) {
+    alert("Please enter student Class.");
     return;
   }
 
@@ -10453,8 +11090,9 @@ function submitTelecallerLeadUpload() {
     id: newLeadId,
     name: studentName,
     phone: phone,
+    class: studentClass,
     coursePackage: coursePackage,
-    status: 'New Inquiry',
+    status: status,
     telecaller: isAssignSelf ? counselorName : 'Unassigned',
     uploader: `${counselorName} (Counselor)`,
     dateAdded: 'Today',
@@ -10467,38 +11105,72 @@ function submitTelecallerLeadUpload() {
   if (!ERP_DATA.crm.dataPool) ERP_DATA.crm.dataPool = [];
   ERP_DATA.crm.dataPool.unshift(newLead);
 
-  if (isAssignSelf) {
-    if (!ERP_DATA.telecaller) ERP_DATA.telecaller = {};
-    if (!ERP_DATA.telecaller.callList) ERP_DATA.telecaller.callList = [];
+  if (!ERP_DATA.crmLeads) ERP_DATA.crmLeads = [];
+  ERP_DATA.crmLeads.unshift({
+    id: newLeadId,
+    name: studentName,
+    phone: phone,
+    class: studentClass,
+    coursePackage: coursePackage,
+    status: status,
+    date: 'Today',
+    priority: 'Normal'
+  });
 
-    const courseParts = coursePackage.split('(');
-    const courseName = courseParts[0].trim();
-    const pkgName = courseParts[1] ? courseParts[1].replace(')', '').trim() : 'Standard Package';
+  if (!ERP_DATA.telecaller) ERP_DATA.telecaller = {};
+  if (!ERP_DATA.telecaller.callList) ERP_DATA.telecaller.callList = [];
 
-    ERP_DATA.telecaller.callList.unshift({
-      id: `TC-${Math.floor(1000 + Math.random() * 9000)}`,
-      leadId: newLead.id,
-      studentName: studentName,
+  const courseParts = coursePackage.split('(');
+  const courseName = courseParts[0].trim();
+  const pkgName = courseParts[1] ? courseParts[1].replace(')', '').trim() : 'Standard Package';
+
+  ERP_DATA.telecaller.callList.unshift({
+    id: `TC-${Math.floor(1000 + Math.random() * 9000)}`,
+    leadId: newLead.id,
+    studentName: studentName,
+    phone: phone,
+    class: studentClass,
+    course: courseName,
+    package: pkgName,
+    status: status,
+    priority: 'Normal',
+    lastCalled: 'Just Added',
+    nextFollowup: 'Today',
+    notes: notes || `Directly uploaded by ${counselorName}`
+  });
+
+  if (status === 'Admission') {
+    if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+    if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+    ERP_DATA.classManagement.students.unshift({
+      id: `WST-ADM-${Date.now().toString().slice(-4)}`,
+      name: studentName,
       phone: phone,
-      course: courseName,
-      package: pkgName,
-      status: 'For Cold Call',
-      priority: 'High',
-      lastCalled: 'Just Added',
-      nextFollowup: 'Today',
-      notes: notes || `Directly uploaded and assigned by ${counselorName}`
+      class: studentClass,
+      status: 'Admission',
+      admissionTaker: counselorName,
+      course: courseName || 'General Skill Track',
+      package: pkgName || 'Standard Package',
+      totalFee: 25000,
+      fees: 25000,
+      paidFee: 0,
+      discount: 0,
+      pendingFees: 25000,
+      specialConcerns: notes || '—',
+      isScheduled: false,
+      batch: 'Unscheduled',
+      enrolledDate: new Date().toLocaleDateString('en-GB')
     });
+    if (typeof renderUnscheduledStudentsList === 'function') {
+      renderUnscheduledStudentsList();
+    }
   }
 
   closeTelecallerUploadModal();
   renderTelecallerUnassignedData();
   renderTelecallerCallList();
 
-  if (isAssignSelf) {
-    showToastNotification(`✓ Student lead "${studentName}" uploaded and assigned to your Call List!`);
-  } else {
-    showToastNotification(`✓ Student lead "${studentName}" uploaded to Unassigned Data Pool (Ready to grab)!`);
-  }
+  showToastNotification(`✓ Student lead "${studentName}" (${studentClass}) saved with status "${status}"!`);
 }
 
 function submitTelecallerBatchUpload() {
