@@ -5392,23 +5392,6 @@
             </select>
           </div>
         </div>
-
-        <!-- Optional Course & Telecaller assignment -->
-        <div class="form-grid-2">
-          <div class="form-field">
-            <label>Course Package <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Optional)</span></label>
-            <select id="manual-course">
-              <option value="">Select Course Package (Optional)</option>
-            </select>
-          </div>
-          <div class="form-field">
-            <label>Telecaller assign <span style="font-size:10px; color:var(--text-muted); text-transform:none;">(Optional)</span></label>
-            <select id="manual-telecaller">
-              <option value="Unassigned">Unassigned (Open Data Pool)</option>
-              <option value="Reception Desk">Reception Desk</option>
-            </select>
-          </div>
-        </div>
       </div>
       <div class="modal-footer">
         <button class="btn-secondary" onclick="closeModal('modal-manual-entry')">Cancel</button>
@@ -7134,24 +7117,6 @@
             <input type="text" id="tc-calling-not-interested-other" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px; background:#ffffff;" placeholder="Fill specific reason details...">
           </div>
         </div>
-
-        <!-- General Follow-up & Call Notes -->
-        <div id="tc-calling-general-notes-wrap">
-          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px;">
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151;">Next Follow-up Date:</label>
-              <input type="date" id="tc-dialer-followup-date" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
-            </div>
-            <div>
-              <label style="font-size:11.5px; font-weight:600; color:#374151;">Follow-up Time:</label>
-              <input type="time" id="tc-dialer-followup-time" class="form-input" style="font-size:12px; padding:6px 10px; width:100%;">
-            </div>
-          </div>
-          <div>
-            <label style="font-size:11.5px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Call Notes &amp; Observations:</label>
-            <textarea id="tc-dialer-notes" rows="2" class="form-input" style="width:100%; font-size:12px; padding:7px 10px; line-height:1.4;" placeholder="Enter call discussion notes or observations..."></textarea>
-          </div>
-        </div>
       </div>
       <div class="modal-footer" style="justify-content:space-between;">
         <button class="btn-secondary" style="color:#b91c1c;" onclick="hangupAndCloseCall()">
@@ -7461,48 +7426,7 @@
               </div>
             </div>
 
-            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:12px;">
-              <div>
-                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Course / Program</label>
-                <select id="tc-upload-course" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
-                  <option value="">Select Course</option>
-                </select>
-              </div>
-              <div>
-                <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Lead Source</label>
-                <select id="tc-upload-source" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
-                  <option value="Google Performance Ads">Google Performance Ads</option>
-                  <option value="College Campus Drive" selected>College Campus Drive</option>
-                  <option value="Website Ingestion">Website Inquiry Form</option>
-                  <option value="Walk-in Desk">Walk-in Desk</option>
-                  <option value="Student Referral">Student Referral</option>
-                  <option value="Instagram Lead Form">Instagram Campaign</option>
-                  <option value="Telephonic Inquiry">Telephonic Inquiry</option>
-                </select>
-              </div>
-            </div>
-
-            <!-- Assignment Destination -->
-            <div style="background:#f9faf7; border:1px solid #dbe2d6; border-radius:8px; padding:12px 14px; margin-bottom:14px;">
-              <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:8px;">Lead Assignment:</label>
-              <div style="display:flex; flex-direction:column; gap:8px;">
-                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0f1419; cursor:pointer;">
-                  <input type="radio" name="tc-upload-dest" value="unassigned" checked style="accent-color:#6b8e4e;">
-                  <span><strong>⚡ Unassigned (Shared Data Pool)</strong> &mdash; Available for telecallers to grab</span>
-                </label>
-                <label style="display:flex; align-items:center; gap:8px; font-size:12.5px; color:#0f1419; cursor:pointer;">
-                  <input type="radio" name="tc-upload-dest" value="self" style="accent-color:#6b8e4e;">
-                  <span><strong>👤 Assign to Myself (<span id="tc-upload-modal-self-name">Nasim v</span>)</strong> &mdash; Immediately added to my active Call List</span>
-                </label>
-              </div>
-            </div>
-
-            <div style="margin-bottom:14px;">
-              <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Initial Notes / Observations:</label>
-              <textarea id="tc-upload-notes" rows="2" class="form-input" placeholder="Enter initial lead notes and student inquiries..." style="width:100%; font-size:12px; padding:8px;"></textarea>
-            </div>
-
-            <div class="modal-footer" style="padding:0; border:none; justify-content:space-between;">
+            <div class="modal-footer" style="padding:14px 0 0 0; border-top:1px solid #e5e7eb; justify-content:space-between; margin-top:8px;">
               <button type="button" class="btn-secondary" onclick="closeModal('modal-telecaller-upload-data')">Cancel</button>
               <button type="submit" class="btn-primary-ai">
                 ✓ Ingest & Save Lead
@@ -8269,6 +8193,258 @@
         <button type="button" class="btn-secondary" onclick="closeModal('modal-add-to-batch')">Cancel</button>
         <button type="button" class="btn-primary-ai" onclick="submitAddToBatch()">
           ✓ Create Batch &amp; Assign Students
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Unscheduled Student -->
+  <div class="modal-overlay" id="modal-edit-unscheduled-student">
+    <div class="modal-content" style="max-width: 600px; width: 95vw;">
+      <div class="modal-header" style="background:#f9faf7; border-bottom:1.5px solid #dbe2d6;">
+        <div>
+          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">STUDENT PROFILE &amp; ADMISSION</span>
+          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;">✏️ Edit Student Details</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-unscheduled-student')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <input type="hidden" id="edit-unscheduled-id">
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Name *</label>
+            <input type="text" id="edit-unscheduled-name" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter student full name" required>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Phone number *</label>
+            <input type="text" id="edit-unscheduled-phone" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter contact phone number" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Class *</label>
+            <input type="text" id="edit-unscheduled-class" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter student class" required>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Status *</label>
+            <select id="edit-unscheduled-status" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
+              <option value="Admission" selected>Admission</option>
+              <option value="Cold Call">Cold Call</option>
+              <option value="For assessment">For assessment</option>
+              <option value="For Demo Class">For Demo Class</option>
+              <option value="Followup">Followup</option>
+              <option value="Not Intrested">Not Intrested</option>
+              <option value="Not attended">Not attended</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:12px;">
+          <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Admission taker :</label>
+          <input type="text" id="edit-unscheduled-admission-taker" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter staff name who took admission">
+        </div>
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Course :</label>
+            <select id="edit-unscheduled-course" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onEditStudentCourseChange()">
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Package :</label>
+            <select id="edit-unscheduled-package" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onEditStudentPackageChange()">
+            </select>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Fees :</label>
+            <input type="number" id="edit-unscheduled-fees" class="form-input" style="width:100%; font-size:12.5px; font-weight:700; background:#f8fafc; padding:7px 10px;" readonly placeholder="0">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Paid :</label>
+            <input type="number" id="edit-unscheduled-paid" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" placeholder="Enter paid amount" oninput="calculateEditStudentPendingFees()">
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Discount :</label>
+            <input type="number" id="edit-unscheduled-discount" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" min="0" placeholder="Enter discount amount" oninput="calculateEditStudentPendingFees()">
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Pending fees :</label>
+            <input type="number" id="edit-unscheduled-pending" class="form-input" style="width:100%; font-size:12.5px; font-weight:700; background:#fffbeb; color:#b45309; padding:7px 10px;" readonly placeholder="0">
+          </div>
+        </div>
+
+        <div style="margin-bottom:8px;">
+          <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Special concerns :</label>
+          <textarea id="edit-unscheduled-special-concern" rows="2" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" placeholder="Enter student special concerns or requirements..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-unscheduled-student')">Cancel</button>
+        <button type="button" class="btn-primary-ai" onclick="saveEditUnscheduledStudent()">
+          ✓ Save Student Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Batch -->
+  <div class="modal-overlay" id="modal-edit-batch">
+    <div class="modal-content" style="max-width: 640px; width: 95vw;">
+      <div class="modal-header" style="background:#f9faf7; border-bottom:1.5px solid #dbe2d6;">
+        <div>
+          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">ACADEMIC OPERATIONS</span>
+          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;">✏️ Edit Batch Details</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-batch')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <input type="hidden" id="edit-batch-id">
+        <!-- Batch name (Required) -->
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12.5px; font-weight:700; color:#0f1419; display:block; margin-bottom:4px;">
+            Batch name <span style="color:#dc2626;">* (Required)</span>
+          </label>
+          <input type="text" id="edit-batch-name" class="form-input" style="width:100%; font-size:13px; font-weight:600; padding:8px 12px;" placeholder="Enter batch name" required autocomplete="off">
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px;">
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Course :</label>
+            <select id="edit-batch-course" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onEditBatchCourseChange()">
+            </select>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Package :</label>
+            <select id="edit-batch-package" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onEditBatchPackageChange()">
+            </select>
+          </div>
+        </div>
+
+        <div style="margin-bottom:14px;">
+          <label style="font-size:12px; font-weight:600; color:#374151; display:block; margin-bottom:4px;">Assign mentor :</label>
+          <select id="edit-batch-mentor" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;">
+          </select>
+        </div>
+
+        <!-- Add / remove students -->
+        <div style="margin-bottom:14px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:6px;">
+            <label style="font-size:12px; font-weight:700; color:#0f1419;">Batch Students :</label>
+            <span style="font-size:11px; color:#64748b;">Check students to assign / Uncheck to move back to unscheduled</span>
+          </div>
+          <div id="edit-batch-students-container" style="max-height:170px; overflow-y:auto; border:1px solid #dbe2d6; border-radius:8px; padding:10px; background:#fafbfa; display:flex; flex-direction:column; gap:8px;">
+          </div>
+        </div>
+
+        <!-- Metric badges: Students count & Pending slots -->
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; background:#f4f6f2; border:1px solid #dbe2d6; border-radius:8px; padding:12px 16px;">
+          <div>
+            <span style="font-size:11px; color:#4b5563; font-weight:600; text-transform:uppercase;">Students count :</span>
+            <div style="font-size:20px; font-weight:800; color:#0f1419;" id="edit-batch-students-count">0</div>
+          </div>
+          <div>
+            <span style="font-size:11px; color:#4b5563; font-weight:600; text-transform:uppercase;">Pending slots :</span>
+            <div style="font-size:20px; font-weight:800; color:#6b8e4e;" id="edit-batch-pending-slots">30</div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-batch')">Cancel</button>
+        <button type="button" class="btn-primary-ai" onclick="saveEditBatch()">
+          ✓ Save Batch Changes
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: Edit Lead (CRM & Telecalling) -->
+  <div class="modal-overlay" id="modal-edit-lead">
+    <div class="modal-content" style="max-width: 560px; width: 95vw;">
+      <div class="modal-header" style="background:#f9faf7; border-bottom:1.5px solid #dbe2d6;">
+        <div>
+          <span class="badge-pista" style="font-size:10.5px; font-weight:700;">LEAD RECORD</span>
+          <h3 style="margin:2px 0 0 0; font-size:17px; color:#0f1419;">✏️ Edit Lead Information</h3>
+        </div>
+        <button class="modal-close-btn" onclick="closeModal('modal-edit-lead')">✕</button>
+      </div>
+      <div class="modal-body" style="padding:20px;">
+        <input type="hidden" id="edit-lead-id">
+        <input type="hidden" id="edit-lead-source-type">
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Name *</label>
+            <input type="text" id="edit-lead-name" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter student full name" required>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Phone number *</label>
+            <input type="text" id="edit-lead-phone" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter contact phone number" required>
+          </div>
+        </div>
+
+        <div class="form-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px;">
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Class *</label>
+            <input type="text" id="edit-lead-class" class="form-input" style="width:100%; font-size:12.5px; padding:7px 10px;" placeholder="Enter student class" required>
+          </div>
+          <div>
+            <label style="font-size:12px; font-weight:700; color:#374151; display:block; margin-bottom:4px;">Status *</label>
+            <select id="edit-lead-status" class="form-input" style="width:100%; font-size:12px; padding:7px 10px;" onchange="onEditLeadStatusChange(this.value)">
+              <option value="Cold Call">Cold Call</option>
+              <option value="For assessment">For assessment</option>
+              <option value="For Demo Class">For Demo Class</option>
+              <option value="Followup">Followup</option>
+              <option value="Admission">Admission</option>
+              <option value="Not Intrested">Not Intrested</option>
+              <option value="Not attended">Not attended</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Dynamic Admission details if Status is Admission -->
+        <div id="edit-lead-admission-section" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:8px; padding:12px; margin-bottom:12px;">
+          <div style="font-size:12px; font-weight:700; color:#166534; margin-bottom:8px;">🎓 Admission Information</div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:8px;">
+            <div>
+              <label style="font-size:11px; font-weight:600; color:#1f2937;">Course :</label>
+              <select id="edit-lead-course" class="form-input" style="width:100%; font-size:12px; padding:5px 8px;" onchange="onEditLeadCourseChange()"></select>
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:600; color:#1f2937;">Package :</label>
+              <select id="edit-lead-package" class="form-input" style="width:100%; font-size:12px; padding:5px 8px;" onchange="onEditLeadPackageChange()"></select>
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px;">
+            <div>
+              <label style="font-size:11px; font-weight:600; color:#1f2937;">Fees :</label>
+              <input type="number" id="edit-lead-fees" class="form-input" style="width:100%; font-size:11.5px; padding:5px 8px; background:#f8fafc;" readonly>
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:600; color:#1f2937;">Paid :</label>
+              <input type="number" id="edit-lead-paid" class="form-input" style="width:100%; font-size:11.5px; padding:5px 8px;" min="0" oninput="calculateEditLeadPendingFees()">
+            </div>
+            <div>
+              <label style="font-size:11px; font-weight:600; color:#1f2937;">Discount :</label>
+              <input type="number" id="edit-lead-discount" class="form-input" style="width:100%; font-size:11.5px; padding:5px 8px;" min="0" oninput="calculateEditLeadPendingFees()">
+            </div>
+          </div>
+          <div>
+            <label style="font-size:11px; font-weight:600; color:#1f2937;">Pending fees :</label>
+            <input type="number" id="edit-lead-pending" class="form-input" style="width:100%; font-size:11.5px; padding:5px 8px; background:#fffbeb; color:#b45309; font-weight:700;" readonly>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer" style="justify-content:space-between;">
+        <button type="button" class="btn-secondary" onclick="closeModal('modal-edit-lead')">Cancel</button>
+        <button type="button" class="btn-primary-ai" onclick="saveEditLead()">
+          ✓ Save Lead Changes
         </button>
       </div>
     </div>

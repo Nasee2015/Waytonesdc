@@ -1424,13 +1424,13 @@ function renderDataPoolDashboardTable(leads) {
   if (!tbody) return;
 
   const statusOptions = [
-    "For Cold Call",
-    "For Demo",
-    "For Assessment",
-    "For Follow-up",
+    "Cold Call",
+    "For assessment",
+    "For Demo Class",
+    "Followup",
     "Admission",
-    "Not Interested",
-    "Other"
+    "Not Intrested",
+    "Not attended"
   ];
 
   if (!leads || leads.length === 0) {
@@ -1480,7 +1480,10 @@ function renderDataPoolDashboardTable(leads) {
         <td>${telecallerDisplay}</td>
         <td>${uploaderDisplay}</td>
         <td style="font-size:11.5px; color:#4b5563;">${lead.dateAdded}</td>
-        <td style="text-align:center;">
+        <td style="text-align:center; white-space:nowrap;">
+          <button class="btn-action-view" onclick="openEditLeadModal('${lead.id}')" style="margin-right:4px; padding:3px 8px; font-size:11px; border-color:#6b8e4e; color:#2e441f;" title="Edit Lead">
+            ✏️ Edit
+          </button>
           <button class="btn-delete-lead" onclick="deleteLead('${lead.id}')" title="Delete lead from Data Pool">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"/>
@@ -3324,11 +3327,14 @@ function populateClassManagementView() {
           </div>
         </div>
 
-        <div style="display:flex; gap:8px; margin-top:12px;">
-          <button class="btn-secondary" style="flex:1; padding:6px 10px; font-size:12px;" onclick="openBatchStudentList('${c.id}')">
-            View Students (${c.students})
+        <div style="display:flex; gap:6px; margin-top:12px;">
+          <button class="btn-secondary" style="flex:1; padding:6px 8px; font-size:11.5px;" onclick="openBatchStudentList('${c.id}')">
+            Students (${c.students})
           </button>
-          <button class="btn-primary-ai" style="padding:6px 12px; font-size:12px;" onclick="selectAttendanceBatch('${c.id}')">
+          <button class="btn-secondary" style="padding:6px 10px; font-size:11.5px; border-color:#6b8e4e; color:#2e441f; display:inline-flex; align-items:center; gap:3px;" onclick="openEditBatchModal('${c.id}')" title="Edit Batch">
+            ✏️ Edit
+          </button>
+          <button class="btn-primary-ai" style="padding:6px 10px; font-size:11.5px;" onclick="selectAttendanceBatch('${c.id}')">
             Attendance
           </button>
         </div>
@@ -4600,6 +4606,7 @@ function renderClassBatches() {
       <td><span class="module-status-badge ${c.statusColor}">${c.status}</span></td>
       <td style="text-align:center; white-space:nowrap;">
         <button class="btn-action-view" onclick="openBatchStudentList('${c.id}')" style="margin-right:4px;">Students</button>
+        <button class="btn-action-view" onclick="openEditBatchModal('${c.id}')" style="margin-right:4px; border-color:#6b8e4e; color:#2e441f;" title="Edit Batch">✏️ Edit</button>
         <button class="btn-action-view" onclick="selectAttendanceBatch('${c.id}')">Attendance</button>
       </td>
     </tr>
@@ -9338,6 +9345,9 @@ function renderTelecallerCallList(filterStatus = 'All', filterPriority = 'All', 
                    🎓 Admit
                  </button>`
             }
+            <button class="btn-secondary" style="padding:4px 7px; font-size:11px; border-color:#6b8e4e; color:#2e441f;" onclick="openEditLeadModal('${item.id}')" title="Edit Lead">
+              ✏️ Edit
+            </button>
           </div>
         </td>
       </tr>
@@ -9827,7 +9837,10 @@ function renderUnscheduledStudentsList() {
         <td style="max-width:200px; font-size:12px; color:#4b5563;" title="${escapeHTML(s.specialConcerns || '—')}">
           ${escapeHTML(s.specialConcerns || '—')}
         </td>
-        <td style="text-align:center;">
+        <td style="text-align:center; white-space:nowrap;">
+          <button class="btn-secondary" style="padding:4px 8px; font-size:11.5px; margin-right:4px; display:inline-flex; align-items:center; gap:3px;" onclick="openEditUnscheduledStudentModal('${escapeHTML(s.id)}')">
+            ✏️ Edit
+          </button>
           <button class="btn-primary-ai" style="padding:4px 10px; font-size:11.5px; display:inline-flex; align-items:center; gap:4px;" onclick="openAddToBatchModal('${escapeHTML(s.id)}')">
             + Add to Batch
           </button>
@@ -16145,3 +16158,553 @@ window.addEventListener('waytone:db-status-change', (e) => {
   // Update Modal if open
   updateSupabaseModalStatus();
 });
+
+// ==========================================================
+// 12. UNIVERSAL EDIT MANAGEMENT (Unscheduled Students, Batches, Leads)
+// ==========================================================
+
+// --- 12.1 EDIT UNSCHEDULED STUDENT ---
+function openEditUnscheduledStudentModal(studentId) {
+  const student = (ERP_DATA.classManagement?.students || []).find(s => s.id === studentId);
+  if (!student) return;
+
+  const idInput = document.getElementById('edit-unscheduled-id');
+  const nameInput = document.getElementById('edit-unscheduled-name');
+  const phoneInput = document.getElementById('edit-unscheduled-phone');
+  const classInput = document.getElementById('edit-unscheduled-class');
+  const statusSelect = document.getElementById('edit-unscheduled-status');
+  const takerInput = document.getElementById('edit-unscheduled-admission-taker');
+  const feesInput = document.getElementById('edit-unscheduled-fees');
+  const paidInput = document.getElementById('edit-unscheduled-paid');
+  const discountInput = document.getElementById('edit-unscheduled-discount');
+  const pendingInput = document.getElementById('edit-unscheduled-pending');
+  const concernInput = document.getElementById('edit-unscheduled-special-concern');
+
+  if (idInput) idInput.value = student.id;
+  if (nameInput) nameInput.value = student.name || '';
+  if (phoneInput) phoneInput.value = student.phone || '';
+  if (classInput) classInput.value = student.class || '10th';
+  if (statusSelect) statusSelect.value = student.status || 'Admission';
+  if (takerInput) takerInput.value = student.admissionTaker || 'Admissions Counselor';
+  if (concernInput) concernInput.value = student.specialConcerns === '—' ? '' : (student.specialConcerns || '');
+
+  const courses = getAvailableCoursesAndPackages();
+  const courseSelect = document.getElementById('edit-unscheduled-course');
+  if (courseSelect) {
+    courseSelect.innerHTML = courses.map(c => `
+      <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">${escapeHTML(c.name || c.title)}</option>
+    `).join('');
+    const matched = courses.find(c => (c.name || c.title || c.id).toLowerCase() === (student.course || '').toLowerCase());
+    if (matched) courseSelect.value = matched.id || matched.name || matched.title;
+  }
+
+  onEditStudentCourseChange(student.package);
+
+  const totalFee = student.fees || student.totalFee || 25000;
+  const paid = student.paidFee !== undefined ? student.paidFee : 0;
+  const discount = student.discount !== undefined ? student.discount : 0;
+  const pending = student.pendingFees !== undefined ? student.pendingFees : Math.max(0, totalFee - paid - discount);
+
+  if (feesInput) feesInput.value = totalFee;
+  if (paidInput) paidInput.value = paid;
+  if (discountInput) discountInput.value = discount;
+  if (pendingInput) pendingInput.value = pending;
+
+  openModal('modal-edit-unscheduled-student');
+}
+
+function onEditStudentCourseChange(selectedPkgName = null) {
+  const courseSelect = document.getElementById('edit-unscheduled-course');
+  const pkgSelect = document.getElementById('edit-unscheduled-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', fees: 25000, fee: 25000 },
+    { name: 'Premium Job Track', fees: 45000, fee: 45000 },
+    { name: 'Basic Foundational', fees: 15000, fee: 15000 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-fee="${p.fees || p.fee || 0}">${escapeHTML(p.name)}</option>
+  `).join('');
+
+  if (selectedPkgName) {
+    const matched = packages.find(p => p.name.toLowerCase() === selectedPkgName.toLowerCase());
+    if (matched) pkgSelect.value = matched.name;
+  }
+
+  onEditStudentPackageChange();
+}
+
+function onEditStudentPackageChange() {
+  const pkgSelect = document.getElementById('edit-unscheduled-package');
+  const feesInput = document.getElementById('edit-unscheduled-fees');
+  if (!pkgSelect || !feesInput) return;
+
+  const selectedOption = pkgSelect.selectedOptions[0];
+  const fee = selectedOption ? parseInt(selectedOption.getAttribute('data-fee') || 0) : 0;
+  feesInput.value = fee;
+
+  calculateEditStudentPendingFees();
+}
+
+function calculateEditStudentPendingFees() {
+  const feesInput = document.getElementById('edit-unscheduled-fees');
+  const paidInput = document.getElementById('edit-unscheduled-paid');
+  const discountInput = document.getElementById('edit-unscheduled-discount');
+  const pendingInput = document.getElementById('edit-unscheduled-pending');
+
+  const fees = Number(feesInput?.value) || 0;
+  const paid = Number(paidInput?.value) || 0;
+  const discount = Number(discountInput?.value) || 0;
+  const pending = Math.max(0, fees - paid - discount);
+
+  if (pendingInput) {
+    pendingInput.value = pending;
+  }
+}
+
+function saveEditUnscheduledStudent() {
+  const studentId = document.getElementById('edit-unscheduled-id')?.value;
+  const student = (ERP_DATA.classManagement?.students || []).find(s => s.id === studentId);
+  if (!student) return;
+
+  const name = document.getElementById('edit-unscheduled-name')?.value.trim();
+  const phone = document.getElementById('edit-unscheduled-phone')?.value.trim();
+  const studentClass = document.getElementById('edit-unscheduled-class')?.value.trim();
+  const status = document.getElementById('edit-unscheduled-status')?.value || 'Admission';
+  const taker = document.getElementById('edit-unscheduled-admission-taker')?.value.trim();
+  const courseSelect = document.getElementById('edit-unscheduled-course');
+  const course = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || student.course;
+  const pkg = document.getElementById('edit-unscheduled-package')?.value || student.package;
+  const fees = Number(document.getElementById('edit-unscheduled-fees')?.value) || 0;
+  const paid = Number(document.getElementById('edit-unscheduled-paid')?.value) || 0;
+  const discount = Number(document.getElementById('edit-unscheduled-discount')?.value) || 0;
+  const pending = Number(document.getElementById('edit-unscheduled-pending')?.value) || 0;
+  const concerns = document.getElementById('edit-unscheduled-special-concern')?.value.trim() || '—';
+
+  if (!name || !phone || !studentClass) {
+    alert("Please fill in student Name, Phone number, and Class.");
+    return;
+  }
+
+  student.name = name;
+  student.phone = phone;
+  student.class = studentClass;
+  student.status = status;
+  student.admissionTaker = taker;
+  student.course = course;
+  student.package = pkg;
+  student.fees = fees;
+  student.totalFee = fees;
+  student.paidFee = paid;
+  student.discount = discount;
+  student.pendingFees = pending;
+  student.specialConcerns = concerns;
+
+  if (status !== 'Admission') {
+    student.isAdmission = false;
+  }
+
+  const tcCall = (ERP_DATA.telecaller?.callList || []).find(c => 
+    (c.phone && c.phone.replace(/\s+/g, '') === phone.replace(/\s+/g, '')) ||
+    c.studentName.toLowerCase() === name.toLowerCase()
+  );
+  if (tcCall) {
+    tcCall.studentName = name;
+    tcCall.phone = phone;
+    tcCall.class = studentClass;
+    tcCall.status = status;
+    tcCall.course = course;
+    tcCall.package = pkg;
+  }
+
+  closeModal('modal-edit-unscheduled-student');
+  renderUnscheduledStudentsList();
+  showToastNotification(`Student ${name} details successfully updated.`);
+}
+
+// --- 12.2 EDIT BATCH ---
+function openEditBatchModal(batchId) {
+  let batch = (ERP_DATA.classManagement?.cohorts || []).find(b => b.id === batchId || b.name === batchId);
+  if (!batch) {
+    batch = (ERP_DATA.classManagement?.batches || []).find(b => b.id === batchId || b.name === batchId);
+  }
+  if (!batch) return;
+
+  const idInput = document.getElementById('edit-batch-id');
+  const nameInput = document.getElementById('edit-batch-name');
+  if (idInput) idInput.value = batch.id || batchId;
+  if (nameInput) nameInput.value = batch.name || '';
+
+  const courses = getAvailableCoursesAndPackages();
+  const courseSelect = document.getElementById('edit-batch-course');
+  if (courseSelect) {
+    courseSelect.innerHTML = courses.map(c => `
+      <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">${escapeHTML(c.name || c.title)}</option>
+    `).join('');
+    const matched = courses.find(c => (c.name || c.title || c.id).toLowerCase() === (batch.course || '').toLowerCase());
+    if (matched) courseSelect.value = matched.id || matched.name || matched.title;
+  }
+
+  onEditBatchCourseChange(batch.package);
+
+  const mentorSelect = document.getElementById('edit-batch-mentor');
+  if (mentorSelect) {
+    const mentors = (ERP_DATA.classManagement?.mentors && ERP_DATA.classManagement.mentors.length > 0)
+      ? ERP_DATA.classManagement.mentors
+      : (typeof getCoordinatorMentors === 'function' ? getCoordinatorMentors() : [
+          { name: 'Dr. Ramesh Kumar', availableSlots: 2 },
+          { name: 'Prof. Sneha Menon', availableSlots: 3 },
+          { name: 'Vikramaditya Roy', availableSlots: 1 }
+        ]);
+    let html = `<option value="Unassigned">Leave Unassigned</option>`;
+    mentors.forEach(m => {
+      html += `<option value="${escapeHTML(m.name)}" ${batch.mentor === m.name ? 'selected' : ''}>${escapeHTML(m.name)}</option>`;
+    });
+    mentorSelect.innerHTML = html;
+  }
+
+  renderEditBatchStudentsList(batch);
+  updateEditBatchSlotCalculation();
+
+  openModal('modal-edit-batch');
+}
+
+function onEditBatchCourseChange(selectedPkgName = null) {
+  const courseSelect = document.getElementById('edit-batch-course');
+  const pkgSelect = document.getElementById('edit-batch-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', totalSlots: 30, availableSlots: 30 },
+    { name: 'Premium Job Track', totalSlots: 20, availableSlots: 20 },
+    { name: 'Basic Foundational', totalSlots: 40, availableSlots: 40 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-slots="${p.totalSlots || 30}">${escapeHTML(p.name)} (${p.totalSlots || 30} seats)</option>
+  `).join('');
+
+  if (selectedPkgName) {
+    const matched = packages.find(p => p.name.toLowerCase() === selectedPkgName.toLowerCase());
+    if (matched) pkgSelect.value = matched.name;
+  }
+
+  onEditBatchPackageChange();
+}
+
+function onEditBatchPackageChange() {
+  updateEditBatchSlotCalculation();
+}
+
+function renderEditBatchStudentsList(batch) {
+  const container = document.getElementById('edit-batch-students-container');
+  if (!container) return;
+
+  const allStudents = ERP_DATA.classManagement?.students || [];
+  const batchStudents = allStudents.filter(s => s.batch === batch.name || s.batch === batch.id);
+  const unscheduled = allStudents.filter(s => 
+    (s.status === 'Admission' || s.isAdmission) && 
+    (!s.isScheduled || s.batch === 'Unscheduled' || !s.batch || s.batch === '—')
+  );
+
+  const combined = [
+    ...batchStudents.map(s => ({ ...s, isCurrent: true })),
+    ...unscheduled.filter(u => !batchStudents.some(b => b.id === u.id)).map(s => ({ ...s, isCurrent: false }))
+  ];
+
+  if (combined.length === 0) {
+    container.innerHTML = `<div style="font-size:12px; color:#64748b; padding:8px;">No students available for this batch.</div>`;
+    return;
+  }
+
+  container.innerHTML = combined.map(s => `
+    <label style="display:flex; align-items:center; justify-content:space-between; padding:6px 8px; border-radius:6px; background:#ffffff; border:1px solid #e2e8f0; font-size:12px; cursor:pointer;">
+      <div style="display:flex; align-items:center; gap:8px;">
+        <input type="checkbox" class="edit-batch-student-chk" value="${escapeHTML(s.id)}" ${s.isCurrent ? 'checked' : ''} onchange="updateEditBatchSlotCalculation()" style="accent-color:#6b8e4e; width:15px; height:15px;">
+        <div>
+          <strong style="color:#0f1419;">${escapeHTML(s.name)}</strong>
+          <span style="color:#64748b; font-size:11px;"> • ${escapeHTML(s.class || '10th')} • ${escapeHTML(s.phone || '')}</span>
+        </div>
+      </div>
+      <span class="badge" style="font-size:10px; background:${s.isCurrent ? '#dcfce7' : '#f1f5f9'}; color:${s.isCurrent ? '#166534' : '#475569'};">
+        ${s.isCurrent ? 'Assigned' : 'Unscheduled'}
+      </span>
+    </label>
+  `).join('');
+}
+
+function updateEditBatchSlotCalculation() {
+  const checkboxes = document.querySelectorAll('.edit-batch-student-chk:checked');
+  const count = checkboxes.length;
+  const countEl = document.getElementById('edit-batch-students-count');
+  const slotsEl = document.getElementById('edit-batch-pending-slots');
+  const pkgSelect = document.getElementById('edit-batch-package');
+
+  let totalSlots = 30;
+  if (pkgSelect && pkgSelect.selectedOptions[0]) {
+    totalSlots = parseInt(pkgSelect.selectedOptions[0].getAttribute('data-slots') || 30);
+  }
+
+  if (countEl) countEl.textContent = count;
+  if (slotsEl) {
+    const pendingSlots = Math.max(0, totalSlots - count);
+    slotsEl.textContent = pendingSlots;
+  }
+}
+
+function saveEditBatch() {
+  const batchId = document.getElementById('edit-batch-id')?.value;
+  const batchName = document.getElementById('edit-batch-name')?.value.trim();
+  const courseSelect = document.getElementById('edit-batch-course');
+  const courseName = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || 'Skill Track';
+  const pkgSelect = document.getElementById('edit-batch-package');
+  const pkgName = pkgSelect?.value || 'Standard';
+  const mentor = document.getElementById('edit-batch-mentor')?.value || 'Unassigned';
+
+  if (!batchName) {
+    alert("Please enter Batch name (Required).");
+    return;
+  }
+
+  let cohort = (ERP_DATA.classManagement?.cohorts || []).find(b => b.id === batchId || b.name === batchId);
+  const oldBatchName = cohort ? cohort.name : batchId;
+
+  if (cohort) {
+    cohort.name = batchName;
+    cohort.course = courseName;
+    cohort.package = pkgName;
+    cohort.mentor = mentor;
+  }
+
+  let batch = (ERP_DATA.classManagement?.batches || []).find(b => b.id === batchId || b.name === batchId);
+  if (batch) {
+    batch.name = batchName;
+    batch.course = courseName;
+    batch.package = pkgName;
+    batch.mentor = mentor;
+  }
+
+  const checkedStudentIds = Array.from(document.querySelectorAll('.edit-batch-student-chk:checked')).map(c => c.value);
+  const allCheckboxStudentIds = Array.from(document.querySelectorAll('.edit-batch-student-chk')).map(c => c.value);
+
+  const students = ERP_DATA.classManagement?.students || [];
+  students.forEach(s => {
+    if (checkedStudentIds.includes(s.id)) {
+      s.isScheduled = true;
+      s.batch = batchName;
+      s.batchId = batchId;
+    } else if (allCheckboxStudentIds.includes(s.id) && (s.batch === oldBatchName || s.batch === batchName)) {
+      s.isScheduled = false;
+      s.batch = 'Unscheduled';
+      s.batchId = '—';
+    }
+  });
+
+  if (cohort) {
+    cohort.students = checkedStudentIds.length;
+  }
+
+  closeModal('modal-edit-batch');
+  renderUnscheduledStudentsList();
+  if (typeof populateClassManagementView === 'function') populateClassManagementView();
+  if (typeof renderClassBatches === 'function') renderClassBatches();
+  showToastNotification(`Batch ${batchName} successfully updated.`);
+}
+
+// --- 12.3 EDIT LEAD (CRM & Telecaller) ---
+function openEditLeadModal(leadId) {
+  let lead = (ERP_DATA.crm?.dataPool || []).find(l => l.id === leadId);
+  let isFromTc = false;
+  if (!lead) {
+    lead = (ERP_DATA.telecaller?.callList || []).find(c => c.id === leadId || c.leadId === leadId);
+    isFromTc = true;
+  }
+  if (!lead) {
+    lead = (ERP_DATA.crmLeads || []).find(l => l.id === leadId);
+  }
+  if (!lead) return;
+
+  const idInput = document.getElementById('edit-lead-id');
+  const sourceInput = document.getElementById('edit-lead-source-type');
+  const nameInput = document.getElementById('edit-lead-name');
+  const phoneInput = document.getElementById('edit-lead-phone');
+  const classInput = document.getElementById('edit-lead-class');
+  const statusSelect = document.getElementById('edit-lead-status');
+
+  if (idInput) idInput.value = lead.id;
+  if (sourceInput) sourceInput.value = isFromTc ? 'tc' : 'crm';
+  if (nameInput) nameInput.value = lead.name || lead.studentName || '';
+  if (phoneInput) phoneInput.value = lead.phone || '';
+  if (classInput) classInput.value = lead.class || '10th';
+  if (statusSelect) {
+    statusSelect.value = lead.status || 'Cold Call';
+    if (!statusSelect.value) statusSelect.value = 'Cold Call';
+  }
+
+  onEditLeadStatusChange(statusSelect ? statusSelect.value : (lead.status || 'Cold Call'));
+
+  openModal('modal-edit-lead');
+}
+
+function onEditLeadStatusChange(status) {
+  const admSec = document.getElementById('edit-lead-admission-section');
+  if (status === 'Admission') {
+    if (admSec) admSec.style.display = 'block';
+    const courses = getAvailableCoursesAndPackages();
+    const courseSelect = document.getElementById('edit-lead-course');
+    if (courseSelect) {
+      courseSelect.innerHTML = courses.map(c => `
+        <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">${escapeHTML(c.name || c.title)}</option>
+      `).join('');
+    }
+    onEditLeadCourseChange();
+  } else {
+    if (admSec) admSec.style.display = 'none';
+  }
+}
+
+function onEditLeadCourseChange() {
+  const courseSelect = document.getElementById('edit-lead-course');
+  const pkgSelect = document.getElementById('edit-lead-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', fees: 25000 },
+    { name: 'Premium Job Track', fees: 45000 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-fee="${p.fees || 25000}">${escapeHTML(p.name)}</option>
+  `).join('');
+
+  onEditLeadPackageChange();
+}
+
+function onEditLeadPackageChange() {
+  const pkgSelect = document.getElementById('edit-lead-package');
+  const feesInput = document.getElementById('edit-lead-fees');
+  if (!pkgSelect || !feesInput) return;
+
+  const fee = parseInt(pkgSelect.selectedOptions[0]?.getAttribute('data-fee') || 25000);
+  feesInput.value = fee;
+  calculateEditLeadPendingFees();
+}
+
+function calculateEditLeadPendingFees() {
+  const fees = Number(document.getElementById('edit-lead-fees')?.value) || 0;
+  const paid = Number(document.getElementById('edit-lead-paid')?.value) || 0;
+  const discount = Number(document.getElementById('edit-lead-discount')?.value) || 0;
+  const pending = Math.max(0, fees - paid - discount);
+  const pendingInput = document.getElementById('edit-lead-pending');
+  if (pendingInput) pendingInput.value = pending;
+}
+
+function saveEditLead() {
+  const leadId = document.getElementById('edit-lead-id')?.value;
+  const name = document.getElementById('edit-lead-name')?.value.trim();
+  const phone = document.getElementById('edit-lead-phone')?.value.trim();
+  const studentClass = document.getElementById('edit-lead-class')?.value.trim();
+  const status = document.getElementById('edit-lead-status')?.value || 'Cold Call';
+
+  if (!name || !phone || !studentClass) {
+    alert("Please fill in student Name, Phone number, and Class.");
+    return;
+  }
+
+  const poolLead = (ERP_DATA.crm?.dataPool || []).find(l => l.id === leadId);
+  if (poolLead) {
+    poolLead.name = name;
+    poolLead.phone = phone;
+    poolLead.class = studentClass;
+    poolLead.status = status;
+  }
+
+  const crmLead = (ERP_DATA.crmLeads || []).find(l => l.id === leadId);
+  if (crmLead) {
+    crmLead.name = name;
+    crmLead.phone = phone;
+    crmLead.class = studentClass;
+    crmLead.status = status;
+  }
+
+  const tcLead = (ERP_DATA.telecaller?.callList || []).find(c => c.id === leadId || c.leadId === leadId);
+  if (tcLead) {
+    tcLead.studentName = name;
+    tcLead.phone = phone;
+    tcLead.class = studentClass;
+    tcLead.status = status;
+  }
+
+  if (status === 'Admission') {
+    const courseSelect = document.getElementById('edit-lead-course');
+    const courseName = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || 'Skill Track';
+    const pkg = document.getElementById('edit-lead-package')?.value || 'Standard';
+    const fees = Number(document.getElementById('edit-lead-fees')?.value) || 25000;
+    const paid = Number(document.getElementById('edit-lead-paid')?.value) || 0;
+    const discount = Number(document.getElementById('edit-lead-discount')?.value) || 0;
+    const pending = Number(document.getElementById('edit-lead-pending')?.value) || Math.max(0, fees - paid - discount);
+
+    if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+    if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+
+    let student = ERP_DATA.classManagement.students.find(s => 
+      (s.phone && s.phone.replace(/\s+/g, '') === phone.replace(/\s+/g, '')) ||
+      s.name.toLowerCase() === name.toLowerCase()
+    );
+
+    if (student) {
+      student.name = name;
+      student.phone = phone;
+      student.class = studentClass;
+      student.status = 'Admission';
+      student.course = courseName;
+      student.package = pkg;
+      student.fees = fees;
+      student.totalFee = fees;
+      student.paidFee = paid;
+      student.discount = discount;
+      student.pendingFees = pending;
+    } else {
+      ERP_DATA.classManagement.students.unshift({
+        id: `WST-ADM-${Date.now().toString().slice(-4)}`,
+        name: name,
+        phone: phone,
+        class: studentClass,
+        status: 'Admission',
+        admissionTaker: CURRENT_USER?.name || 'Admissions Counselor',
+        course: courseName,
+        package: pkg,
+        totalFee: fees,
+        fees: fees,
+        paidFee: paid,
+        discount: discount,
+        pendingFees: pending,
+        specialConcerns: '—',
+        isScheduled: false,
+        batch: 'Unscheduled',
+        enrolledDate: new Date().toLocaleDateString('en-GB')
+      });
+    }
+    renderUnscheduledStudentsList();
+  }
+
+  closeModal('modal-edit-lead');
+  if (typeof renderDataPoolDashboardTable === 'function') renderDataPoolDashboardTable(ERP_DATA.crm?.dataPool || []);
+  if (typeof renderTelecallerCallList === 'function') renderTelecallerCallList();
+  showToastNotification(`Lead ${name} successfully updated.`);
+}
+
