@@ -1575,6 +1575,10 @@ function showToastNotification(message) {
 // 8. MODAL INGESTION HANDLERS (EXCEL, PHOTO OCR, MANUAL)
 // ==========================================================
 function openModal(modalId) {
+  if (modalId === 'modal-create-batch') {
+    openCreateBatchModal();
+    return;
+  }
   const modal = document.getElementById(modalId);
   if (modal) {
     modal.classList.add('active');
@@ -3278,8 +3282,11 @@ function populateClassManagementView() {
   if (kpiBatches) kpiBatches.textContent = clsData.kpis.activeBatches;
   if (kpiCompleted) kpiCompleted.textContent = clsData.kpis.completedCourses;
 
-  // 1b. Render List of Unscheduled Students
+  // 1b. Render List of Unscheduled Students & Kanban Board
   renderUnscheduledStudentsList();
+  if (typeof renderClassKanbanBoard === 'function') {
+    renderClassKanbanBoard();
+  }
 
   // 2. Render Active Cohorts Grid
   const container = document.getElementById('class-cohorts-container');
@@ -4255,7 +4262,7 @@ function openMentorDashboard(mentorIdentifier) {
 
   if (!mentor && ERP_DATA.classManagement.mentors) {
     const generalMentor = ERP_DATA.classManagement.mentors.find(m =>
-      m.name.toLowerCase() === (mentorIdentifier || '').toLowerCase() ||
+      (m.name && m.name.toLowerCase() === (mentorIdentifier || '').toLowerCase()) ||
       m.id === mentorIdentifier
     );
     if (generalMentor) {
@@ -4274,26 +4281,63 @@ function openMentorDashboard(mentorIdentifier) {
         availableSlots: `${Math.max(0, 4 - (generalMentor.activeBatchesCount || 3))} Batch Slot Available (${generalMentor.activeBatchesCount || 3} of 4 Active)`,
         rating: 4.9,
         classesDelivered: generalMentor.classesTaken || 45,
-        activeBatches: [
-          {
-            batchCode: 'ENG-AFF-01',
-            package: 'Affordable',
-            fee: '₹600 / Monthly',
-            studentsCount: 6,
-            capacity: 6,
-            batchInfo: 'Batch 1 - 6 students',
-            schedule: 'Weekly 3 days class (Mon/Wed/Fri 09:30 AM)',
-            room: 'Language Lab 1',
-            completedClasses: 10,
-            totalClasses: 12,
-            progressPct: 83.3,
-            status: 'Full (6/6)'
-          }
-        ],
+        activeBatches: [],
         students: [],
         reviews: []
       };
     }
+  }
+
+  // Check coordinator mentors
+  if (!mentor && typeof getCoordinatorMentors === 'function') {
+    const coordMentor = getCoordinatorMentors().find(m =>
+      (m.name && m.name.toLowerCase() === (mentorIdentifier || '').toLowerCase()) ||
+      m.id === mentorIdentifier
+    );
+    if (coordMentor) {
+      mentor = {
+        id: coordMentor.id || 'MTR-COORD-01',
+        name: coordMentor.name,
+        title: coordMentor.designation || 'Faculty Mentor',
+        specialization: coordMentor.department || 'Academic Instruction',
+        avatar: coordMentor.avatar || 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+        phone: coordMentor.phone || '+91 98450 11200',
+        email: `${coordMentor.name.toLowerCase().replace(/[^a-z]/g, '')}@waytone.edu`,
+        room: 'Language Lab 1',
+        maxBatches: 4,
+        activeBatchesCount: 0,
+        availableSlotsCount: 4,
+        availableSlots: '4 Batch Slots Available',
+        rating: coordMentor.rating || 4.9,
+        classesDelivered: 45,
+        activeBatches: [],
+        students: [],
+        reviews: []
+      };
+    }
+  }
+
+  // Fallback: create on-the-fly mentor object if name is provided
+  if (!mentor && mentorIdentifier && mentorIdentifier !== 'Unassigned') {
+    mentor = {
+      id: `MTR-${mentorIdentifier.replace(/[^A-Za-z0-9]/g, '').slice(0, 6).toUpperCase()}`,
+      name: mentorIdentifier,
+      title: 'Faculty Mentor',
+      specialization: 'Cohort Mentorship',
+      avatar: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80',
+      phone: '+91 98450 11200',
+      email: `${mentorIdentifier.toLowerCase().replace(/[^a-z]/g, '')}@waytone.edu`,
+      room: 'Language Lab 1',
+      maxBatches: 4,
+      activeBatchesCount: 0,
+      availableSlotsCount: 4,
+      availableSlots: '4 Batch Slots Available',
+      rating: 4.9,
+      classesDelivered: 45,
+      activeBatches: [],
+      students: [],
+      reviews: []
+    };
   }
 
   if (!mentor) {
@@ -4312,6 +4356,80 @@ function openMentorDashboard(mentorIdentifier) {
 
 function renderMentorDashboard(mentor) {
   if (!mentor) return;
+
+  // DYNAMICALLY RECONCILE ASSIGNED BATCHES & STUDENTS ACROSS THE SYSTEM
+  const allSystemCohorts = [
+    ...(ERP_DATA.classManagement?.cohorts || []),
+    ...(ERP_DATA.classManagement?.batches || [])
+  ];
+
+  const assignedCohorts = allSystemCohorts.filter(c => 
+    c.mentor && mentor.name && (
+      c.mentor.toLowerCase() === mentor.name.toLowerCase() ||
+      c.mentor === mentor.id ||
+      c.mentorId === mentor.id
+    )
+  );
+
+  if (!mentor.activeBatches) mentor.activeBatches = [];
+  const existingBatchCodes = new Set(mentor.activeBatches.map(b => (b.batchCode || b.name || '').toLowerCase()));
+
+  assignedCohorts.forEach(c => {
+    const code = c.code || c.id || c.name;
+    if (!existingBatchCodes.has(code.toLowerCase()) && !existingBatchCodes.has(c.name.toLowerCase())) {
+      const batchStudents = (ERP_DATA.classManagement?.students || []).filter(s => s.batch === c.name || s.batch === c.id || s.batch === c.code);
+      const studentCount = batchStudents.length || c.students || c.studentsCount || 0;
+      const capacity = c.capacity || 30;
+      const isBatchFull = studentCount >= capacity;
+
+      mentor.activeBatches.unshift({
+        batchCode: code,
+        batchName: c.name,
+        package: c.package || c.course || 'Standard Package',
+        fee: c.fee || '₹25,000 Total',
+        studentsCount: studentCount,
+        capacity: capacity,
+        batchInfo: `${c.name} - ${studentCount} students`,
+        schedule: c.schedule || 'Mon, Wed, Fri (10:00 AM - 12:00 PM)',
+        room: c.room || 'Language Lab 1',
+        completedClasses: c.completedClasses || 4,
+        totalClasses: c.totalClasses || 12,
+        progressPct: Math.round(((c.completedClasses || 4) / (c.totalClasses || 12)) * 100),
+        status: isBatchFull ? 'Full' : 'Active'
+      });
+      existingBatchCodes.add(code.toLowerCase());
+      existingBatchCodes.add(c.name.toLowerCase());
+    }
+  });
+
+  // Reconcile students assigned to this mentor or their batches
+  const allSystemStudents = ERP_DATA.classManagement?.students || [];
+  const assignedStudents = allSystemStudents.filter(s => 
+    (s.assignedMentor && mentor.name && s.assignedMentor.toLowerCase() === mentor.name.toLowerCase()) ||
+    (s.mentor && mentor.name && s.mentor.toLowerCase() === mentor.name.toLowerCase()) ||
+    (s.batch && assignedCohorts.some(c => c.name === s.batch || c.id === s.batch || c.code === s.batch))
+  );
+
+  if (!mentor.students) mentor.students = [];
+  const existingStudentNames = new Set(mentor.students.map(s => (s.name || '').toLowerCase()));
+  assignedStudents.forEach(s => {
+    if (!existingStudentNames.has(s.name.toLowerCase())) {
+      mentor.students.unshift({
+        name: s.name,
+        phone: s.phone || '+91 98450 00000',
+        package: s.package || 'Standard Package',
+        batchCode: s.batch || 'Batch',
+        completedClasses: 2,
+        totalClasses: 12,
+        attendancePct: 100,
+        pendingClassDate: 'Upcoming Class',
+        estimateEndDate: '30 Oct 2026'
+      });
+      existingStudentNames.add(s.name.toLowerCase());
+    }
+  });
+
+  mentor.activeBatchesCount = mentor.activeBatches.length;
 
   // 1. Header Profile Elements
   const avatarEl = document.getElementById('mentor-dash-avatar');
@@ -5400,47 +5518,549 @@ function submitCreateCourse() {
   showToastNotification(`New training course "${title}" (${code}) published successfully.`);
 }
 
-function submitCreateBatch() {
-  const code = (document.getElementById('batch-add-code')?.value || '').trim();
-  const courseId = document.getElementById('batch-add-course')?.value || '';
-  const mentor = document.getElementById('batch-add-mentor')?.value || 'Dr. Aris Thorne';
-  const capacity = parseInt(document.getElementById('batch-add-capacity')?.value, 10) || 30;
-  const schedule = (document.getElementById('batch-add-schedule')?.value || '').trim() || 'Mon - Fri (10:00 AM - 01:00 PM)';
-  const room = (document.getElementById('batch-add-room')?.value || '').trim() || 'Lab 101';
-  const capstone = (document.getElementById('batch-add-capstone')?.value || '').trim() || 'Applied Real-world Capstone Project';
+// ============================================================
+// 8. CREATE BATCH & KANBAN BOARD MANAGEMENT
+// ============================================================
+let createBatchPreselectedStudentId = null;
 
-  if (!code) {
-    alert("Please enter a Batch Code.");
+function openCreateBatchModal(studentId = null) {
+  if (studentId) studentId = studentId.toString().trim();
+  createBatchPreselectedStudentId = studentId;
+  const modal = document.getElementById('modal-create-batch');
+  if (!modal) return;
+
+  let preselectedStudent = null;
+  if (studentId) {
+    preselectedStudent = (ERP_DATA.classManagement?.students || []).find(s => s.id && s.id.toString().trim() === studentId);
+  }
+
+  // 1. Batch name (requirement)
+  const nameInput = document.getElementById('create-batch-name');
+  if (nameInput) {
+    if (preselectedStudent && preselectedStudent.course) {
+      nameInput.value = `${preselectedStudent.course} - Batch ${new Date().toLocaleDateString('en-GB', { month: 'short' })}`;
+    } else {
+      nameInput.value = '';
+    }
+  }
+
+  // 2. Course select
+  const courses = getAvailableCoursesAndPackages();
+  const courseSelect = document.getElementById('create-batch-course');
+  if (courseSelect) {
+    courseSelect.innerHTML = courses.map(c => `
+      <option value="${escapeHTML(c.id || c.name || c.title)}" data-name="${escapeHTML(c.name || c.title)}">
+        ${escapeHTML(c.name || c.title)}
+      </option>
+    `).join('');
+
+    if (preselectedStudent && preselectedStudent.course) {
+      const match = courses.find(c => (c.name || c.title || c.id).toLowerCase() === preselectedStudent.course.toLowerCase());
+      if (match) courseSelect.value = match.id || match.name || match.title;
+    }
+  }
+
+  // 3. Package select (Automatically filled in admission time)
+  onCreateBatchCourseChange(preselectedStudent ? preselectedStudent.package : null);
+
+  // 4. Assigned Mentor (Manual Assignment)
+  const mentorSelect = document.getElementById('create-batch-mentor');
+  if (mentorSelect) {
+    const mentors = (typeof getCoordinatorMentors === 'function')
+      ? getCoordinatorMentors()
+      : ((ERP_DATA.classManagement?.mentors && ERP_DATA.classManagement.mentors.length > 0)
+          ? ERP_DATA.classManagement.mentors
+          : [
+              { name: 'Dr. Ramesh Kumar', availableSlots: 2 },
+              { name: 'Prof. Sneha Menon', availableSlots: 3 },
+              { name: 'Vikramaditya Roy', availableSlots: 1 }
+            ]);
+
+    let html = `<option value="Unassigned">Leave Unassigned (Assign Later)</option>`;
+    mentors.forEach(m => {
+      const slots = m.availableSlots !== undefined ? m.availableSlots : 2;
+      html += `<option value="${escapeHTML(m.name)}">${escapeHTML(m.name)} (${slots} slots open)</option>`;
+    });
+    mentorSelect.innerHTML = html;
+  }
+
+  // 5. Add student checklist & live slot calculation
+  renderCreateBatchStudentsList();
+  updateCreateBatchSlotCalculation();
+
+  const modalEl = document.getElementById('modal-create-batch');
+  if (modalEl) {
+    modalEl.classList.add('active');
+    modalEl.style.display = 'flex';
+  }
+}
+
+function onCreateBatchCourseChange(preselectPkgName = null) {
+  const courseSelect = document.getElementById('create-batch-course');
+  const pkgSelect = document.getElementById('create-batch-package');
+  if (!courseSelect || !pkgSelect) return;
+
+  const selectedCourseId = courseSelect.value;
+  const courses = getAvailableCoursesAndPackages();
+  const course = courses.find(c => (c.id === selectedCourseId || c.name === selectedCourseId || c.title === selectedCourseId)) || courses[0];
+
+  const packages = (course && course.packages && course.packages.length > 0) ? course.packages : [
+    { name: 'Standard Package', totalSlots: 30, availableSlots: 30 },
+    { name: 'Premium Job Track', totalSlots: 20, availableSlots: 20 },
+    { name: 'Basic Foundational', totalSlots: 40, availableSlots: 40 }
+  ];
+
+  pkgSelect.innerHTML = packages.map(p => `
+    <option value="${escapeHTML(p.name)}" data-capacity="${p.totalSlots || 30}">
+      ${escapeHTML(p.name)} (${p.totalSlots || 30} max capacity)
+    </option>
+  `).join('');
+
+  if (preselectPkgName) {
+    const match = packages.find(p => p.name.toLowerCase() === preselectPkgName.toLowerCase());
+    if (match) pkgSelect.value = match.name;
+  }
+
+  onCreateBatchPackageChange();
+}
+
+function onCreateBatchPackageChange() {
+  const pkgSelect = document.getElementById('create-batch-package');
+  const capacityEl = document.getElementById('create-batch-pkg-capacity');
+  if (pkgSelect && capacityEl) {
+    const selectedOpt = pkgSelect.selectedOptions[0];
+    const capacity = selectedOpt ? parseInt(selectedOpt.getAttribute('data-capacity') || 30) : 30;
+    capacityEl.textContent = capacity;
+  }
+  updateCreateBatchSlotCalculation();
+}
+
+function renderCreateBatchStudentsList() {
+  const container = document.getElementById('create-batch-students-container');
+  if (!container) return;
+
+  const unscheduled = (ERP_DATA.classManagement?.students || []).filter(s => 
+    (s.status === 'Admission' || s.isAdmission) && 
+    (!s.isScheduled || s.batch === 'Unscheduled' || !s.batch || s.batch === '—')
+  );
+
+  if (unscheduled.length === 0) {
+    container.innerHTML = `
+      <div style="text-align:center; padding:16px; color:#64748b; font-size:12px;">
+        No non-active joiners awaiting batch allocation.
+      </div>
+    `;
     return;
   }
 
-  const courseObj = ERP_DATA.classManagement.courses.find(c => c.id === courseId) || {};
-  const batchName = `${courseObj.title ? courseObj.title.split(' ')[0] : 'Skill'} — ${code}`;
+  container.innerHTML = unscheduled.map(s => {
+    const isChecked = (createBatchPreselectedStudentId && s.id && s.id.toString().trim() === createBatchPreselectedStudentId.toString().trim());
+    return `
+      <label style="display:flex; align-items:center; gap:10px; background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; padding:8px 10px; cursor:pointer; font-size:12px;">
+        <input type="checkbox" class="create-batch-student-cb" value="${escapeHTML(s.id)}" ${isChecked ? 'checked' : ''} onchange="updateCreateBatchSlotCalculation()" style="accent-color:#6b8e4e; width:15px; height:15px;">
+        <div style="flex:1;">
+          <strong style="color:#0f1419;">${escapeHTML(s.name)}</strong>
+          <span style="color:#64748b; margin-left:6px;">Class: ${escapeHTML(s.class || '10th')}</span>
+          <span style="color:#64748b; margin-left:6px;">• ${escapeHTML(s.package || s.course || 'Package')}</span>
+        </div>
+        <span style="font-weight:700; color:#b45309;">Pending: ₹${Number(s.pendingFees || 0).toLocaleString('en-IN')}</span>
+      </label>
+    `;
+  }).join('');
+}
+
+function updateCreateBatchSlotCalculation() {
+  const checkboxes = document.querySelectorAll('.create-batch-student-cb:checked');
+  const count = checkboxes.length;
+
+  const countEl = document.getElementById('create-batch-student-count');
+  if (countEl) countEl.textContent = count;
+
+  const capacityEl = document.getElementById('create-batch-pkg-capacity');
+  const capacity = capacityEl ? parseInt(capacityEl.textContent || 30) : 30;
+
+  const availableSlots = Math.max(0, capacity - count);
+  const availEl = document.getElementById('create-batch-available-slots');
+  if (availEl) {
+    availEl.textContent = availableSlots;
+    availEl.style.color = availableSlots === 0 ? '#dc2626' : '#166534';
+  }
+
+  const banner = document.getElementById('create-batch-slots-filled-banner');
+  if (banner) {
+    if (availableSlots === 0 || count >= capacity) {
+      banner.style.display = 'block';
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+
+function submitCreateBatch() {
+  const nameInput = document.getElementById('create-batch-name');
+  const batchName = (nameInput?.value || '').trim();
+
+  // Batch name (requirement)
+  if (!batchName) {
+    alert("Batch name is required. Please enter a batch name.");
+    nameInput?.focus();
+    return;
+  }
+
+  const courseSelect = document.getElementById('create-batch-course');
+  const courseName = courseSelect?.selectedOptions[0]?.getAttribute('data-name') || courseSelect?.value || 'Skill Track';
+  const pkgSelect = document.getElementById('create-batch-package');
+  const packageName = pkgSelect?.value || 'Standard Package';
+  const capacityEl = document.getElementById('create-batch-pkg-capacity');
+  const capacity = capacityEl ? parseInt(capacityEl.textContent || 30) : 30;
+
+  const mentorSelect = document.getElementById('create-batch-mentor');
+  const mentorName = mentorSelect?.value || 'Unassigned';
+
+  const selectedCheckboxes = document.querySelectorAll('.create-batch-student-cb:checked');
+  const selectedStudentIds = Array.from(selectedCheckboxes).map(cb => cb.value);
+
+  // Update selected students in ERP_DATA.classManagement.students
+  if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+  if (!ERP_DATA.classManagement.students) ERP_DATA.classManagement.students = [];
+
+  selectedStudentIds.forEach(id => {
+    const student = ERP_DATA.classManagement.students.find(s => s.id === id);
+    if (student) {
+      student.isScheduled = true;
+      student.batch = batchName;
+      student.assignedBatch = batchName;
+      student.assignedMentor = mentorName;
+      student.course = courseName;
+      student.package = packageName;
+    }
+  });
+
+  // Create new cohort in ERP_DATA.classManagement.cohorts & batches
+  if (!ERP_DATA.classManagement.cohorts) ERP_DATA.classManagement.cohorts = [];
+  if (!ERP_DATA.classManagement.batches) ERP_DATA.classManagement.batches = [];
 
   const newCohort = {
-    id: code,
+    id: `B-${Date.now().toString().slice(-4)}`,
+    code: `B-${batchName.replace(/[^A-Za-z0-9]/g, '').slice(0, 8).toUpperCase() || 'NEW'}`,
     name: batchName,
-    courseId: courseId,
-    mentor: mentor,
-    status: "Active - Week 1",
-    statusColor: "badge-pista",
-    students: 0,
+    course: courseName,
+    package: packageName,
+    mentor: mentorName,
+    mentorName: mentorName,
+    students: selectedStudentIds.length,
+    studentsCount: selectedStudentIds.length,
+    enrolled: selectedStudentIds.length,
     capacity: capacity,
-    attendance: "100%",
+    availableSlots: Math.max(0, capacity - selectedStudentIds.length),
+    attendance: '100%',
     progress: 0,
-    progressText: "Module 1 Started",
-    schedule: schedule,
-    room: room,
-    capstoneTopic: capstone
+    progressText: 'Module 1 Started',
+    status: 'Active',
+    statusColor: 'badge-pista',
+    room: 'Language Lab 1',
+    schedule: 'Mon, Wed, Fri (10:00 AM - 12:00 PM)'
   };
 
   ERP_DATA.classManagement.cohorts.unshift(newCohort);
-  ERP_DATA.classManagement.kpis.activeBatches += 1;
+  ERP_DATA.classManagement.batches.unshift(newCohort);
+
+  if (ERP_DATA.classManagement.kpis) {
+    ERP_DATA.classManagement.kpis.activeBatches = (ERP_DATA.classManagement.kpis.activeBatches || 0) + 1;
+  }
 
   closeModal('modal-create-batch');
-  renderClassBatches();
-  populateClassManagementView();
-  showToastNotification(`New cohort batch "${code}" launched under mentor ${mentor}.`);
+  renderUnscheduledStudentsList();
+  renderClassKanbanBoard();
+  if (typeof renderClassBatches === 'function') renderClassBatches();
+  if (typeof populateClassManagementView === 'function') populateClassManagementView();
+
+  showToastNotification(`✓ Batch "${batchName}" created with ${selectedStudentIds.length} student(s)! Assigned Mentor: ${mentorName}`);
+}
+
+function renderClassKanbanBoard() {
+  const board = document.getElementById('class-kanban-board');
+  if (!board) return;
+
+  if (!ERP_DATA.classManagement) ERP_DATA.classManagement = {};
+  const allStudents = ERP_DATA.classManagement.students || [];
+  const allCohorts = ERP_DATA.classManagement.cohorts || [];
+
+  // 1. Non-Active Joiners (Unscheduled admitted students)
+  const unscheduled = allStudents.filter(s => 
+    (s.status === 'Admission' || s.isAdmission) && 
+    (!s.isScheduled || s.batch === 'Unscheduled' || !s.batch || s.batch === '—')
+  );
+
+  let html = '';
+
+  // COLUMN 1: Non-Active Joiners
+  html += `
+    <div class="class-kanban-col class-kanban-col-joiners">
+      <div class="class-kanban-col-header">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+          <strong style="color:#92400e; font-size:13.5px; display:flex; align-items:center; gap:6px;">
+            <span>📥 Non-Active Joiners</span>
+          </strong>
+          <span class="badge" style="background:#fef3c7; color:#92400e; font-weight:700; font-size:11px; border:1px solid #fde68a;">
+            ${unscheduled.length} Students
+          </span>
+        </div>
+        <p style="font-size:11px; color:#78350f; margin:0 0 8px 0;">Admitted students awaiting batch allocation</p>
+        <button class="btn-primary-ai" onclick="openCreateBatchModal()" style="width:100%; padding:5px 8px; font-size:11.5px; justify-content:center; display:flex; align-items:center; gap:4px;">
+          + Create Batch with Joiners
+        </button>
+      </div>
+
+      <div class="class-kanban-cards-list" style="overflow-y:auto; max-height:560px; display:flex; flex-direction:column; gap:8px;">
+  `;
+
+  if (unscheduled.length === 0) {
+    html += `
+      <div style="text-align:center; padding:24px 8px; color:#64748b; font-size:12px; background:#fff; border-radius:8px; border:1px dashed #dbe2d6;">
+        <div style="font-size:20px; margin-bottom:4px;">✅</div>
+        <strong>No Non-Active Joiners</strong>
+        <div style="font-size:11px; margin-top:2px;">All admitted students are currently placed into active batches.</div>
+      </div>
+    `;
+  } else {
+    html += unscheduled.map(s => {
+      const feeFormatted = (s.pendingFees !== undefined && s.pendingFees !== null)
+        ? `₹${Number(s.pendingFees).toLocaleString('en-IN')}`
+        : (s.fees ? `₹${Number(s.fees).toLocaleString('en-IN')}` : '₹0');
+
+      return `
+        <div class="class-kanban-card class-kanban-card-joiner">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
+            <div>
+              <strong style="font-size:13px; color:#0f1419; display:block;">${escapeHTML(s.name)}</strong>
+              <span style="font-size:11px; color:#4b5563;">📞 ${escapeHTML(s.phone || '—')}</span>
+            </div>
+            <span class="badge-pista" style="font-size:10px; font-weight:700; padding:2px 6px;">Admission</span>
+          </div>
+
+          <div style="display:flex; flex-wrap:wrap; gap:4px; margin-bottom:6px;">
+            <span class="badge" style="background:#f1f5f9; color:#334155; font-size:10.5px; padding:2px 6px; border-radius:4px;">
+              Class: ${escapeHTML(s.class || '10th')}
+            </span>
+            <span class="badge" style="background:#f0fdf4; color:#166534; font-size:10.5px; padding:2px 6px; border-radius:4px; border:1px solid #bbf7d0;">
+              ${escapeHTML(s.package || 'Package')}
+            </span>
+          </div>
+
+          <div style="font-size:11px; color:#4b5563; line-height:1.4; margin-bottom:8px;">
+            <div><strong>Course:</strong> ${escapeHTML(s.course || 'Skill Track')}</div>
+            <div><strong>Counselor:</strong> ${escapeHTML(s.admissionTaker || 'Admissions')}</div>
+            <div><strong>Pending Fees:</strong> <span style="font-weight:700; color:#b45309;">${escapeHTML(feeFormatted)}</span></div>
+            ${s.specialConcerns && s.specialConcerns !== '—' && s.specialConcerns !== 'None' ? `
+              <div style="margin-top:4px; background:#fffbeb; color:#92400e; padding:3px 6px; border-radius:4px; border:1px solid #fef3c7;">
+                ⚠️ <em>${escapeHTML(s.specialConcerns)}</em>
+              </div>
+            ` : ''}
+          </div>
+
+          <div style="display:flex; gap:6px; padding-top:6px; border-top:1px solid #f1f5f9;">
+            <button class="btn-secondary" style="flex:1; padding:4px 6px; font-size:11px; display:inline-flex; align-items:center; justify-content:center; gap:2px;" onclick="openEditUnscheduledStudentModal('${escapeHTML(s.id)}')">
+              ✏️ Edit
+            </button>
+            <button class="btn-primary-ai" style="flex:1.4; padding:4px 6px; font-size:11px; display:inline-flex; align-items:center; justify-content:center; gap:3px;" onclick="openCreateBatchModal('${escapeHTML(s.id)}')">
+              + Add to Batch
+            </button>
+          </div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  html += `
+      </div>
+    </div>
+  `;
+
+  // COLUMNS 2..N: Active Batches
+  allCohorts.forEach(c => {
+    const batchStudents = allStudents.filter(s => s.batch === c.name || s.batch === c.id || s.batch === c.code);
+    const capacity = c.capacity || 30;
+    const studentCount = batchStudents.length || c.students || c.studentsCount || 0;
+    const availableSlots = Math.max(0, capacity - studentCount);
+    const isSlotsFilled = availableSlots === 0 || studentCount >= capacity;
+
+    html += `
+      <div class="class-kanban-col">
+        <div class="class-kanban-col-header">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+            <div>
+              <strong style="color:#0f1419; font-size:13.5px; display:block;">${escapeHTML(c.name)}</strong>
+              <span style="font-size:11px; color:#6b8e4e; font-weight:600;">${escapeHTML(c.code || c.id)}</span>
+            </div>
+            <span class="module-status-badge ${c.statusColor || 'badge-pista'}" style="font-size:10px; padding:2px 6px;">
+              ${escapeHTML(c.status || 'Active')}
+            </span>
+          </div>
+
+          <div style="font-size:11.5px; color:#4b5563; margin-bottom:6px;">
+            <div><strong>Package:</strong> ${escapeHTML(c.package || c.course || 'Standard')}</div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:2px;">
+              <span><strong>Mentor:</strong> <a href="javascript:void(0)" onclick="openMentorDashboard('${escapeHTML(c.mentor)}')" style="color:#2e441f; font-weight:700; text-decoration:underline;" title="Click to view Mentor Dashboard">${escapeHTML(c.mentor || 'Unassigned')}</a></span>
+              <button class="btn-secondary" style="padding:2px 6px; font-size:10px; border-color:#6b8e4e; color:#2e441f;" onclick="openMentorDashboard('${escapeHTML(c.mentor)}')">
+                👤 Dashboard
+              </button>
+            </div>
+          </div>
+
+          <!-- Capacity & Slots Counter -->
+          <div style="background:#ffffff; border:1px solid #dbe2d6; border-radius:6px; padding:6px 8px; margin-bottom:8px;">
+            <div style="display:flex; justify-content:space-between; font-size:11px; margin-bottom:2px;">
+              <span style="color:#4b5563;">Students: <strong style="color:#0f1419;">${studentCount} / ${capacity}</strong></span>
+              <span style="font-weight:700; color:${isSlotsFilled ? '#dc2626' : '#166534'};">
+                ${isSlotsFilled ? 'FULL' : `${availableSlots} slots open`}
+              </span>
+            </div>
+            <div style="height:5px; background:#e2e8f0; border-radius:3px; overflow:hidden;">
+              <div style="width:${Math.min(100, Math.round((studentCount / capacity) * 100))}%; height:100%; background:${isSlotsFilled ? '#dc2626' : '#6b8e4e'};"></div>
+            </div>
+          </div>
+
+          <!-- Slots Filled Manual Mentor Assignment Alert -->
+          ${isSlotsFilled ? `
+            <div style="background:#fef3c7; border:1.5px solid #f59e0b; border-radius:6px; padding:6px 8px; margin-bottom:8px;">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="font-size:14px;">🎉</span>
+                <div style="font-size:11px; font-weight:700; color:#92400e;">
+                  Slots Filled! Assign Mentor Manually
+                </div>
+              </div>
+            </div>
+          ` : ''}
+
+          <!-- Header Actions -->
+          <div style="display:flex; gap:6px;">
+            <button class="btn-secondary" style="flex:1; padding:4px 6px; font-size:11px; display:inline-flex; align-items:center; justify-content:center; gap:3px;" onclick="openEditBatchModal('${escapeHTML(c.id)}')">
+              ✏️ Edit Batch
+            </button>
+            <button class="btn-primary-ai" style="flex:1; padding:4px 6px; font-size:11px; display:inline-flex; align-items:center; justify-content:center; gap:3px;" onclick="openAddStudentToSpecificBatch('${escapeHTML(c.id)}')">
+              + Add Student
+            </button>
+          </div>
+        </div>
+
+        <!-- Student Cards in this Batch -->
+        <div class="class-kanban-cards-list" style="overflow-y:auto; max-height:560px; display:flex; flex-direction:column; gap:8px;">
+    `;
+
+    if (batchStudents.length === 0) {
+      html += `
+        <div style="text-align:center; padding:20px 8px; color:#64748b; font-size:11.5px; background:#fff; border-radius:6px; border:1px dashed #dbe2d6;">
+          <div>👥 No students allocated</div>
+          <button class="btn-secondary" style="margin-top:6px; font-size:10.5px; padding:3px 8px;" onclick="openAddStudentToSpecificBatch('${escapeHTML(c.id)}')">
+            + Allocate Joiners
+          </button>
+        </div>
+      `;
+    } else {
+      html += batchStudents.map(s => {
+        const feeFormatted = (s.pendingFees !== undefined && s.pendingFees !== null)
+          ? `₹${Number(s.pendingFees).toLocaleString('en-IN')}`
+          : '₹0';
+
+        return `
+          <div class="class-kanban-card class-kanban-card-active">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:4px;">
+              <strong style="font-size:12.5px; color:#0f1419;">${escapeHTML(s.name)}</strong>
+              <button class="btn-secondary" style="padding:2px 5px; font-size:10px; color:#dc2626; border-color:#fecaca;" onclick="removeStudentFromBatch('${escapeHTML(s.id)}')" title="Remove from batch and move back to Non-Active Joiners">
+                ✕ Remove
+              </button>
+            </div>
+            <div style="font-size:11px; color:#4b5563; line-height:1.4;">
+              <div>📞 ${escapeHTML(s.phone || '—')} • Class ${escapeHTML(s.class || '10th')}</div>
+              <div style="display:flex; justify-content:space-between; margin-top:2px;">
+                <span>${escapeHTML(s.package || c.package || 'Standard')}</span>
+                <span style="font-weight:700; color:#b45309;">Due: ${escapeHTML(feeFormatted)}</span>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    html += `
+        </div>
+      </div>
+    `;
+  });
+
+  board.innerHTML = html;
+}
+
+function switchClassViewMode(mode) {
+  const kanbanContainer = document.getElementById('class-kanban-view-container');
+  const tableCard = document.getElementById('class-unscheduled-students-card');
+  const btnKanban = document.getElementById('class-view-btn-kanban');
+  const btnTable = document.getElementById('class-view-btn-table');
+
+  if (mode === 'kanban') {
+    if (kanbanContainer) kanbanContainer.style.display = 'block';
+    if (tableCard) tableCard.style.display = 'none';
+    if (btnKanban) {
+      btnKanban.style.background = '#ffffff';
+      btnKanban.style.color = '#1f2937';
+      btnKanban.style.fontWeight = '700';
+      btnKanban.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+    }
+    if (btnTable) {
+      btnTable.style.background = 'transparent';
+      btnTable.style.color = '#64748b';
+      btnTable.style.fontWeight = '600';
+      btnTable.style.boxShadow = 'none';
+    }
+    renderClassKanbanBoard();
+  } else {
+    if (kanbanContainer) kanbanContainer.style.display = 'none';
+    if (tableCard) tableCard.style.display = 'block';
+    if (btnTable) {
+      btnTable.style.background = '#ffffff';
+      btnTable.style.color = '#1f2937';
+      btnTable.style.fontWeight = '700';
+      btnTable.style.boxShadow = '0 1px 2px rgba(0,0,0,0.08)';
+    }
+    if (btnKanban) {
+      btnKanban.style.background = 'transparent';
+      btnKanban.style.color = '#64748b';
+      btnKanban.style.fontWeight = '600';
+      btnKanban.style.boxShadow = 'none';
+    }
+    renderUnscheduledStudentsList();
+  }
+}
+
+function removeStudentFromBatch(studentId) {
+  const student = (ERP_DATA.classManagement?.students || []).find(s => s.id === studentId);
+  if (!student) return;
+
+  const oldBatchName = student.batch;
+  student.isScheduled = false;
+  student.batch = 'Unscheduled';
+  student.assignedBatch = 'Unscheduled';
+
+  // Update cohort student count
+  const cohort = (ERP_DATA.classManagement?.cohorts || []).find(c => c.name === oldBatchName || c.id === oldBatchName || c.code === oldBatchName);
+  if (cohort) {
+    const remaining = (ERP_DATA.classManagement?.students || []).filter(s => s.batch === cohort.name || s.batch === cohort.id || s.batch === cohort.code).length;
+    cohort.students = remaining;
+    cohort.studentsCount = remaining;
+    cohort.availableSlots = Math.max(0, (cohort.capacity || 30) - remaining);
+  }
+
+  renderUnscheduledStudentsList();
+  renderClassKanbanBoard();
+  if (typeof renderClassBatches === 'function') renderClassBatches();
+  if (typeof populateClassManagementView === 'function') populateClassManagementView();
+
+  showToastNotification(`✓ ${student.name} moved back to Non-Active Joiners queue.`);
+}
+
+function openAddStudentToSpecificBatch(batchId) {
+  openEditBatchModal(batchId);
 }
 
 function openEnrollForCourse(courseId) {
@@ -9739,6 +10359,7 @@ function saveTelecallerCallLog() {
     }
 
     renderUnscheduledStudentsList();
+    if (typeof renderClassKanbanBoard === 'function') renderClassKanbanBoard();
   }
 
   // Update Call History
@@ -9853,6 +10474,8 @@ function renderUnscheduledStudentsList() {
 let addToBatchPreselectedId = null;
 
 function openAddToBatchModal(studentId = null) {
+  openCreateBatchModal(studentId);
+  return;
   addToBatchPreselectedId = studentId;
   const modal = document.getElementById('modal-add-to-batch');
   if (!modal) return;
@@ -16325,6 +16948,8 @@ function saveEditUnscheduledStudent() {
 
   closeModal('modal-edit-unscheduled-student');
   renderUnscheduledStudentsList();
+  if (typeof renderClassKanbanBoard === 'function') renderClassKanbanBoard();
+  if (typeof populateClassManagementView === 'function') populateClassManagementView();
   showToastNotification(`Student ${name} details successfully updated.`);
 }
 
@@ -16503,19 +17128,30 @@ function saveEditBatch() {
       s.isScheduled = true;
       s.batch = batchName;
       s.batchId = batchId;
+      s.assignedBatch = batchName;
+      s.assignedMentor = mentor;
     } else if (allCheckboxStudentIds.includes(s.id) && (s.batch === oldBatchName || s.batch === batchName)) {
       s.isScheduled = false;
       s.batch = 'Unscheduled';
       s.batchId = '—';
+      s.assignedBatch = 'Unscheduled';
     }
   });
 
   if (cohort) {
     cohort.students = checkedStudentIds.length;
+    cohort.studentsCount = checkedStudentIds.length;
+    cohort.availableSlots = Math.max(0, (cohort.capacity || 30) - checkedStudentIds.length);
+  }
+  if (batch) {
+    batch.students = checkedStudentIds.length;
+    batch.studentsCount = checkedStudentIds.length;
+    batch.availableSlots = Math.max(0, (batch.capacity || 30) - checkedStudentIds.length);
   }
 
   closeModal('modal-edit-batch');
   renderUnscheduledStudentsList();
+  if (typeof renderClassKanbanBoard === 'function') renderClassKanbanBoard();
   if (typeof populateClassManagementView === 'function') populateClassManagementView();
   if (typeof renderClassBatches === 'function') renderClassBatches();
   showToastNotification(`Batch ${batchName} successfully updated.`);

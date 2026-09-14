@@ -4286,3 +4286,69 @@ body {
 .code-copy-btn:hover {
   background: rgba(255, 255, 255, 0.2);
 }
+
+/* ============================================================ */
+/* CLASS MANAGEMENT KANBAN BOARD STYLES                         */
+/* ============================================================ */
+.class-kanban-scroll::-webkit-scrollbar {
+  height: 8px;
+}
+.class-kanban-scroll::-webkit-scrollbar-track {
+  background: #f1f5f9;
+  border-radius: 4px;
+}
+.class-kanban-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+.class-kanban-scroll::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
+}
+
+.class-kanban-col {
+  flex: 0 0 320px;
+  min-width: 300px;
+  max-width: 340px;
+  background: #f8faf7;
+  border: 1.5px solid #dbe2d6;
+  border-radius: 10px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.class-kanban-col-joiners {
+  background: #fdfbf7;
+  border-color: #fde68a;
+}
+
+.class-kanban-col-header {
+  border-bottom: 1px solid #e2e8f0;
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+}
+
+.class-kanban-card {
+  background: #ffffff;
+  border: 1px solid #dbe2d6;
+  border-radius: 8px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.class-kanban-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.06);
+}
+
+.class-kanban-card-joiner {
+  border-left: 3.5px solid #eab308;
+}
+
+.class-kanban-card-active {
+  border-left: 3.5px solid #6b8e4e;
+}
+
